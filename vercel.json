@@ -1,0 +1,9 @@
+{
+  "crons": [
+    {
+      "path": "/api/daily-books",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}
+

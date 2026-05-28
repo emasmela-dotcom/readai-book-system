@@ -1,0 +1,36 @@
+{
+  "name": "readai-book-system",
+  "version": "1.0.0",
+  "description": "ReadAI daily book addition system for Neon database",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "dev:kill": "lsof -ti :3000 | xargs kill -9 2>/dev/null || true",
+    "dev:fresh": "npm run dev:kill && rm -rf .next && next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "preview": "npm run dev:kill && npm run build && npm run start",
+    "import:books": "npx tsx scripts/import-books.ts",
+    "import:books:curated": "npx tsx scripts/import-books.ts 15 --curated",
+    "cleanup:placeholders": "npx tsx scripts/cleanup-placeholders.ts",
+    "cleanup:placeholders:dry-run": "npx tsx scripts/cleanup-placeholders.ts --dry-run",
+    "backfill:covers": "npx tsx scripts/backfill-cover-urls.ts",
+    "repair:covers": "npx tsx scripts/repair-cover-urls.ts",
+    "repair:covers:missing": "npx tsx scripts/repair-missing-covers.ts"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.9.5",
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "19.2.5",
+    "autoprefixer": "^10.5.0",
+    "dotenv": "^17.2.3",
+    "postcss": "^8.5.15",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.0.0"
+  }
+}

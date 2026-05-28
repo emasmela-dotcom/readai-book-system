@@ -1,0 +1,23 @@
+{
+  "entries": [
+    {
+      "date": "2025-10-18",
+      "books_added": 131,
+      "last_added": "2025-10-18",
+      "total_books": 281
+    },
+    {
+      "date": "2025-10-22",
+      "books_added": 131,
+      "last_added": "2025-10-22",
+      "total_books": 412
+    },
+    {
+      "date": "2025-10-23",
+      "books_added": 131,
+      "last_added": "2025-10-23",
+      "total_books": 543
+    }
+  ],
+  "last_added": "2025-10-23"
+}
