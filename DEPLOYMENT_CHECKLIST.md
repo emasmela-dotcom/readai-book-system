@@ -144,7 +144,7 @@ Your deployment is successful when:
 
 1. **Check Environment Variables**
    - Verify `DATABASE_URL` is set in Vercel
-   - Ensure it points to Neon (not Supabase)
+   - Ensure `DATABASE_URL` is your Neon connection string
    - Check all environments are selected
 
 2. **Check Cron Job**
@@ -168,7 +168,7 @@ Your deployment is successful when:
 
 - **Schedule:** Daily at 6:00 AM UTC
 - **Books per day:** 200
-- **Database:** Neon (won't pause like Supabase)
+- **Database:** Neon PostgreSQL
 - **Monitoring:** Check weekly to ensure it's working
 
 ---

@@ -2,7 +2,7 @@
 
 ## ✅ Current Status
 
-- **Database:** Neon (migrated from Supabase)
+- **Database:** Neon PostgreSQL
 - **Books:** 508 books in Neon
 - **Automation:** Vercel Cron (cloud-based)
 - **Schedule:** Daily at 6:00 AM UTC
@@ -52,10 +52,9 @@ SELECT * FROM daily_logs ORDER BY date DESC LIMIT 10;
 
 ## 🛡️ Why This Setup is Better
 
-### ✅ Neon vs Supabase
-- **Neon:** Doesn't pause like Supabase
-- **Neon:** Faster wake-up if idle
-- **Neon:** More reliable for automation
+### Database (Neon)
+- Serverless Postgres via `DATABASE_URL`
+- Used by Next.js API routes and optional Python schedulers
 
 ### ✅ Cloud Deployment (Vercel)
 - **No local dependencies:** Runs in the cloud

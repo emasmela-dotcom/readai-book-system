@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Backfill missing books for days when Supabase was paused
+Backfill missing daily book additions in Neon
 This will add books for the missing days (Oct 24 - Nov 14, 2025)
 """
 

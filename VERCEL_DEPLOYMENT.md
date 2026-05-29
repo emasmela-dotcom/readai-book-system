@@ -43,7 +43,7 @@ Go to **Vercel Dashboard → Your Project → Settings → Environment Variables
    postgresql://neondb_owner:npg_VlAkJ4ij9nRI@ep-crimson-dew-a4x50rh1-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
    ```
    - **Select ALL environments:** Production, Preview, Development
-   - This is what makes it use Neon instead of Supabase!
+   - Required for Neon database access in production
 
 2. **`CRON_SECRET`** (Recommended for security)
    ```bash
@@ -117,7 +117,7 @@ node check-count.js
 
 ### 1. **Database URL Verification**
    - ✅ Set in Vercel (not just locally)
-   - ✅ Points to Neon (not Supabase)
+   - ✅ Neon `DATABASE_URL` in all environments
    - ✅ Available in all environments
 
 ### 2. **Cron Job Monitoring**
@@ -147,7 +147,7 @@ node check-count.js
 
 ### Books Not Being Added?
 1. Check `DATABASE_URL` is set in Vercel
-2. Verify it points to Neon (not Supabase)
+2. Verify `DATABASE_URL` is your Neon connection string
 3. Check Vercel Functions logs for connection errors
 4. Test database connection locally: `node check-count.js`
 
@@ -201,7 +201,7 @@ python3 -c "import psycopg2; import os; from dotenv import load_dotenv; load_dot
 
 Your ReadAI system is now:
 - 🚀 **Deployed in the cloud** (Vercel)
-- 🛡️ **Using Neon** (won't pause like Supabase)
+- 🛡️ **Using Neon** PostgreSQL
 - ⏰ **Automated daily** (200 books/day)
 - 📊 **Fully monitored** (logs and health checks)
 
