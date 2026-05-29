@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
+import { realCoverAnd } from '@/lib/real-cover-filter'
 import {
   exactPhraseVariants,
   exactWordsRegex,
@@ -28,6 +29,8 @@ export async function GET(request: NextRequest) {
         SELECT * FROM books 
         WHERE category = ${category}
           AND subcategory = ${subcategory}
+          AND gutenberg_id IS NOT NULL
+        ${realCoverAnd}
         ORDER BY added_date DESC, id DESC
         LIMIT ${limit} OFFSET ${offset}
       `
@@ -35,17 +38,23 @@ export async function GET(request: NextRequest) {
         SELECT COUNT(*) as count FROM books 
         WHERE category = ${category}
           AND subcategory = ${subcategory}
+          AND gutenberg_id IS NOT NULL
+        ${realCoverAnd}
       `
     } else if (category) {
       booksResult = await sql`
         SELECT * FROM books 
         WHERE category = ${category}
+          AND gutenberg_id IS NOT NULL
+        ${realCoverAnd}
         ORDER BY added_date DESC, id DESC
         LIMIT ${limit} OFFSET ${offset}
       `
       countResult = await sql`
         SELECT COUNT(*) as count FROM books 
         WHERE category = ${category}
+          AND gutenberg_id IS NOT NULL
+        ${realCoverAnd}
       `
     } else if (search) {
       const raw = search.trim()
@@ -63,6 +72,7 @@ export async function GET(request: NextRequest) {
             SELECT * FROM books
             WHERE LOWER(title) ~* ${titleRegex}
               AND LOWER(author) ~* ${authorRegex}
+              AND gutenberg_id IS NOT NULL
             ORDER BY added_date DESC, id DESC
             LIMIT ${limit} OFFSET ${offset}
           `
@@ -70,6 +80,7 @@ export async function GET(request: NextRequest) {
             SELECT COUNT(*) as count FROM books
             WHERE LOWER(title) ~* ${titleRegex}
               AND LOWER(author) ~* ${authorRegex}
+              AND gutenberg_id IS NOT NULL
           `
         }
       } else {
@@ -82,8 +93,9 @@ export async function GET(request: NextRequest) {
         } else {
           booksResult = await sql`
             SELECT * FROM books
-            WHERE LOWER(title) ~* ${regex}
-               OR LOWER(author) ~* ${regex}
+            WHERE (LOWER(title) ~* ${regex}
+               OR LOWER(author) ~* ${regex})
+              AND gutenberg_id IS NOT NULL
             ORDER BY
               CASE WHEN LOWER(title) LIKE ${titleExactLike} THEN 0 ELSE 1 END,
               added_date DESC,
@@ -92,19 +104,24 @@ export async function GET(request: NextRequest) {
           `
           countResult = await sql`
             SELECT COUNT(*) as count FROM books
-            WHERE LOWER(title) ~* ${regex}
-               OR LOWER(author) ~* ${regex}
+            WHERE (LOWER(title) ~* ${regex}
+               OR LOWER(author) ~* ${regex})
+              AND gutenberg_id IS NOT NULL
           `
         }
       }
     } else {
       booksResult = await sql`
         SELECT * FROM books 
+        WHERE gutenberg_id IS NOT NULL
+        ${realCoverAnd}
         ORDER BY added_date DESC, id DESC
         LIMIT ${limit} OFFSET ${offset}
       `
       countResult = await sql`
         SELECT COUNT(*) as count FROM books
+        WHERE gutenberg_id IS NOT NULL
+        ${realCoverAnd}
       `
     }
 

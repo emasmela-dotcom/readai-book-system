@@ -3,11 +3,14 @@ import { notFound } from 'next/navigation'
 import { sql } from '@/lib/db'
 import { authorHref } from '@/lib/author-slug'
 import { bookHasFullText } from '@/lib/book-body'
+import { buildCoverProviderLinks, COVER_SOURCE_STEPS } from '@/lib/book-cover-sources'
 import { buildBookSourceLinks, sourceAccessLabel } from '@/lib/book-sources'
+import { BookCoverImage } from '@/components/book-cover-image'
 import { findAisleForBook } from '@/lib/bookstore-sections'
 import { SaveBookButton } from '@/components/save-book-button'
 import { BOOK_COVER_THUMB_BOX_CLASS, BOOK_COVER_THUMB_CLASS } from '@/lib/book-cover-size'
 import { categoryLabel, subcategoryLabel } from '@/lib/inventory-labels'
+import { hasRealCoverUrl } from '@/lib/real-cover-filter'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,6 +50,8 @@ export default async function BookPage({
   const book = rows[0] as BookRow | undefined
   if (!book) notFound()
 
+  const coverUrl = book.cover_url?.trim() || null
+
   const canRead = await bookHasFullText(bookId)
   if (!canRead) notFound()
 
@@ -60,8 +65,12 @@ export default async function BookPage({
     author: book.author,
     gutenbergId: book.gutenberg_id,
   })
-
-  const coverUrl = book.cover_url?.trim() || null
+  const coverSources = buildCoverProviderLinks({
+    title: book.title,
+    author: book.author,
+    gutenbergId: book.gutenberg_id,
+    coverUrl,
+  })
 
   return (
     <main className="min-h-screen bg-[#0e0c0a] px-5 py-10 text-[#e8e4df] md:px-8 md:py-14">
@@ -83,14 +92,15 @@ export default async function BookPage({
         <article>
           <p className="text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Member library · Full book</p>
           <div className="mt-6 flex flex-wrap items-start gap-4">
-            {coverUrl || book.gutenberg_id ? (
+            {hasRealCoverUrl(coverUrl) ? (
               <div className={BOOK_COVER_THUMB_BOX_CLASS}>
-                <img
-                  src={`/api/book-cover/${book.id}`}
-                  alt={`Cover of ${book.title}`}
+                <BookCoverImage
+                  bookId={book.id}
+                  gutenbergId={book.gutenberg_id ?? undefined}
+                  title={book.title}
+                  author={book.author}
+                  coverUrl={coverUrl ?? undefined}
                   className={BOOK_COVER_THUMB_CLASS}
-                  loading="lazy"
-                  decoding="async"
                 />
               </div>
             ) : null}
@@ -177,6 +187,32 @@ export default async function BookPage({
               </ul>
             </section>
           )}
+
+          <section className="mt-8">
+            <h2 className="text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Cover sources</h2>
+            <p className="mt-3 text-sm leading-relaxed text-[#e8e4df]/75">
+              ReadAI loads the real jacket for this title by trying each source below in order until a
+              usable image is found:{' '}
+              {COVER_SOURCE_STEPS.map((s) => s.label).join(' → ')}. Auto-generated Gutenberg title
+              cards are never used.
+            </p>
+            <ol className="mt-4 grid gap-3 sm:grid-cols-2">
+              {coverSources.map((source) => (
+                <li
+                  key={`${source.sourceId}-${source.order}`}
+                  className="border border-white/15 bg-white/[0.02] p-4 transition hover:border-[#c9a96e]/50"
+                >
+                  <a href={source.href} target="_blank" rel="noreferrer" className="block">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-[#c9a96e]">
+                      Source {source.order}
+                    </p>
+                    <p className="mt-2 font-serif text-lg text-[#ffffff]">{source.label}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-[#e8e4df]/80">{source.description}</p>
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </section>
 
           <section className="mt-8">
             <h2 className="text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Legal sources</h2>

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { sql } from '@/lib/db'
+import { realCoverAnd } from '@/lib/real-cover-filter'
 import { BookList, type ClubBookListItem } from '@/components/book-list'
 
 const PAGE_SIZE = 48
@@ -23,6 +24,7 @@ async function resolveAuthorName(slug: string): Promise<string | null> {
     FROM books
     WHERE lower(regexp_replace(trim(author), '[^a-zA-Z0-9]+', '-', 'g')) = ${slug}
       AND gutenberg_id IS NOT NULL
+    ${realCoverAnd}
     GROUP BY author
     ORDER BY COUNT(*)::int DESC
     LIMIT 1
@@ -52,6 +54,7 @@ export default async function AuthorPage({
     FROM books
     WHERE author = ${authorName}
       AND gutenberg_id IS NOT NULL
+    ${realCoverAnd}
   `
   const totalBooks = countResult[0]?.count ?? 0
   const totalPages = Math.max(1, Math.ceil(totalBooks / PAGE_SIZE))
@@ -59,10 +62,11 @@ export default async function AuthorPage({
   const offset = (page - 1) * PAGE_SIZE
 
   const books = await sql`
-    SELECT id, title, author, rating, pages
+    SELECT id, title, author, rating, pages, gutenberg_id, cover_url
     FROM books
     WHERE author = ${authorName}
       AND gutenberg_id IS NOT NULL
+    ${realCoverAnd}
     ORDER BY id DESC
     LIMIT ${PAGE_SIZE} OFFSET ${offset}
   `
@@ -100,7 +104,15 @@ export default async function AuthorPage({
               of <span className="font-medium text-[#f5f2ed]">{totalBooks.toLocaleString()}</span> titles
             </p>
             <BookList
-              books={books as ClubBookListItem[]}
+              books={books.map((b) => ({
+                id: b.id,
+                title: b.title,
+                author: b.author,
+                rating: b.rating != null ? Number(b.rating) : null,
+                pages: b.pages,
+                gutenbergId: b.gutenberg_id as number,
+                coverUrl: (b.cover_url as string | null) ?? undefined,
+              }))}
               startIndex={offset + 1}
             />
           </>

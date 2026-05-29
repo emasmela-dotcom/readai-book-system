@@ -4,13 +4,8 @@ import { join } from 'path'
 import { NextResponse } from 'next/server'
 import sharp from 'sharp'
 import { sql } from '@/lib/db'
-import {
-  coverUrlCandidates,
-  isUsableCoverBytes,
-  MIN_OPEN_LIBRARY_COVER_BYTES,
-  MIN_SCANNED_COVER_BYTES,
-  resolveBestCoverUrl,
-} from '@/lib/book-covers'
+import { isUsableCoverBytes, MIN_OPEN_LIBRARY_COVER_BYTES, MIN_SCANNED_COVER_BYTES } from '@/lib/book-covers'
+import { buildDirectCoverImageUrls, resolveCoverFromSources } from '@/lib/book-cover-sources'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,28 +53,29 @@ async function loadSourceBuffers(bookId: number): Promise<Buffer | null> {
   } | undefined
   if (!row) return null
 
-  const urls: string[] = []
-  const stored = row.cover_url?.trim()
-  if (stored && !urls.includes(stored)) urls.push(stored)
-  if (row.gutenberg_id != null) {
-    for (const url of coverUrlCandidates(row.gutenberg_id)) {
-      if (!urls.includes(url)) urls.push(url)
-    }
+  const book = {
+    coverUrl: row.cover_url,
+    gutenbergId: row.gutenberg_id,
+    title: row.title,
+    author: row.author,
   }
 
-  for (const url of urls) {
+  for (const url of buildDirectCoverImageUrls(book)) {
     const buf = await fetchCoverBuffer(url)
     if (buf) return buf
   }
 
-  if (row.gutenberg_id != null) {
-    const resolved = await resolveBestCoverUrl(row.gutenberg_id, {
-      title: row.title,
-      author: row.author,
-    })
-    if (resolved && !urls.includes(resolved)) {
-      return fetchCoverBuffer(resolved)
+  const resolved = await resolveCoverFromSources(book)
+  if (resolved) {
+    const stored = row.cover_url?.trim()
+    if (resolved.url !== stored) {
+      try {
+        await sql`UPDATE books SET cover_url = ${resolved.url} WHERE id = ${bookId}`
+      } catch {
+        // column may be missing on older schemas
+      }
     }
+    return fetchCoverBuffer(resolved.url)
   }
 
   return null

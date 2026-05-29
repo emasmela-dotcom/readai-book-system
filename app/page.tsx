@@ -9,6 +9,7 @@ import { BOOK_COVER_THUMB_BOX_CLASS, BOOK_COVER_THUMB_CLASS } from '@/lib/book-c
 import { CONNECTED_SOURCES, sourceAccessLabel } from '@/lib/book-sources'
 import { MAGAZINE_SOURCES, magazineAccessLabel } from '@/lib/magazine-sources'
 import { categoryLabel } from '@/lib/inventory-labels'
+import { hasRealCoverUrl } from '@/lib/book-covers'
 
 interface ShelfBook {
   id: number
@@ -158,29 +159,17 @@ export default function ReadAIHome() {
   )
 
   const monthlyPick = useMemo(() => {
-    const pride = browseHubBooks.find((book) =>
+    const pride = booksWithCovers.find((book) =>
       book.title.toLowerCase().includes('pride and prejudice'),
     )
-    if (pride?.coverUrl) return pride
-    return booksWithCovers[0] ?? browseHubBooks[0] ?? null
-  }, [browseHubBooks, booksWithCovers])
+    return pride ?? booksWithCovers[0] ?? null
+  }, [booksWithCovers])
 
-  const shelfBooks = useMemo(() => {
-    const withCovers = booksWithCovers.slice(0, 6)
-    if (withCovers.length >= 6) return withCovers
-    const ids = new Set(withCovers.map((b) => b.id))
-    const rest = browseHubBooks.filter((b) => !ids.has(b.id)).slice(0, 6 - withCovers.length)
-    return [...withCovers, ...rest]
-  }, [booksWithCovers, browseHubBooks])
+  const shelfBooks = useMemo(() => booksWithCovers.slice(0, 6), [booksWithCovers])
 
   const recentBooks = useMemo(() => {
-    const sorted = [...browseHubBooks].sort((a, b) => b.id - a.id)
-    const withCovers = sorted.filter((b) => b.coverUrl).slice(0, 6)
-    if (withCovers.length >= 6) return withCovers
-    const ids = new Set(withCovers.map((b) => b.id))
-    const rest = sorted.filter((b) => !ids.has(b.id)).slice(0, 6 - withCovers.length)
-    return [...withCovers, ...rest]
-  }, [browseHubBooks])
+    return [...booksWithCovers].sort((a, b) => b.id - a.id).slice(0, 6)
+  }, [booksWithCovers])
 
   async function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -318,7 +307,7 @@ export default function ReadAIHome() {
                         key={book.id}
                         className="flex gap-4 py-3 sm:items-center sm:justify-between"
                       >
-                        {book.cover_url || book.gutenberg_id ? (
+                        {hasRealCoverUrl(book.cover_url) ? (
                           <Link href={`/books/${book.id}`} className="shrink-0">
                             <div className={BOOK_COVER_THUMB_BOX_CLASS}>
                               <BookCoverImage

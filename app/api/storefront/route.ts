@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { isGutenbergGeneratedCoverUrl } from '@/lib/book-covers'
+import { hasRealCoverUrl, realCoverAnd } from '@/lib/real-cover-filter'
 import { BOOKSTORE_AISLES } from '@/lib/bookstore-sections'
 import { getDbHost, sql } from '@/lib/db'
 
@@ -7,33 +7,21 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const coverRows = await sql`
-      SELECT id, cover_url
-      FROM books
-      WHERE cover_url IS NOT NULL
-        AND cover_url NOT LIKE '%/cache/epub/%'
-    `
-    const coverById = new Map<number, string>()
-    for (const row of coverRows) {
-      const id = row.id as number
-      const url = typeof row.cover_url === 'string' ? row.cover_url.trim() : ''
-      if (url && !isGutenbergGeneratedCoverUrl(url)) coverById.set(id, url)
-    }
-
-    const totalResult = await sql`SELECT COUNT(*)::int as count FROM books`
-    const totalBooks = totalResult[0]?.count ?? 0
-
-    const fullBooksResult = await sql`
+    const totalResult = await sql`
       SELECT COUNT(*)::int as count FROM books
       WHERE gutenberg_id IS NOT NULL
+      ${realCoverAnd}
     `
-    const fullBooks = fullBooksResult[0]?.count ?? 0
+    const totalBooks = totalResult[0]?.count ?? 0
+
+    const fullBooks = totalBooks
 
     const today = new Date().toISOString().split('T')[0]
     const todayResult = await sql`
       SELECT COUNT(*)::int as count FROM books
       WHERE added_date = ${today}
         AND gutenberg_id IS NOT NULL
+      ${realCoverAnd}
     `
     const booksToday = todayResult[0]?.count ?? 0
 
@@ -41,6 +29,7 @@ export async function GET() {
       SELECT category, subcategory, COUNT(*)::int as count
       FROM books
       WHERE gutenberg_id IS NOT NULL
+      ${realCoverAnd}
       GROUP BY category, subcategory
     `
     const countMap = new Map<string, number>()
@@ -66,6 +55,7 @@ export async function GET() {
               WHERE category = ${aisle.category}
                 AND subcategory = ${aisle.subcategory}
                 AND gutenberg_id IS NOT NULL
+              ${realCoverAnd}
               ORDER BY id DESC
               LIMIT 6
             `
@@ -74,6 +64,7 @@ export async function GET() {
               FROM books
               WHERE category = ${aisle.category}
                 AND gutenberg_id IS NOT NULL
+              ${realCoverAnd}
               ORDER BY id DESC
               LIMIT 6
             `
@@ -87,6 +78,7 @@ export async function GET() {
           count,
           books: books.map((b) => {
             const id = b.id as number
+            const coverUrl = typeof b.cover_url === 'string' ? b.cover_url.trim() : ''
             return {
               id,
               title: b.title as string,
@@ -94,7 +86,7 @@ export async function GET() {
               rating: b.rating != null ? Number(b.rating) : null,
               pages: b.pages as number,
               gutenbergId: b.gutenberg_id as number,
-              coverUrl: coverById.get(id),
+              coverUrl: hasRealCoverUrl(coverUrl) ? coverUrl : undefined,
               fullBook: true,
             }
           }),
@@ -106,6 +98,7 @@ export async function GET() {
       SELECT category, COUNT(*)::int as count
       FROM books
       WHERE gutenberg_id IS NOT NULL
+      ${realCoverAnd}
       GROUP BY category
       ORDER BY count DESC
     `

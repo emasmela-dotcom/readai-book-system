@@ -57,40 +57,18 @@ function toneForBook(bookId: number) {
 }
 
 function BookObject({ book }: { book: BrowseBook }) {
-  if (book.coverUrl || book.gutenbergId) {
-    return (
-      <BookCoverCard
-        bookId={book.id}
-        gutenbergId={book.gutenbergId}
-        coverUrl={book.coverUrl}
-        title={book.title}
-        author={book.author}
-        genreTitle={book.genreTitle}
-        toneClass={toneForBook(book.id)}
-      />
-    )
-  }
+  if (!book.coverUrl?.trim()) return null
 
   return (
-    <Link
-      href={`/books/${book.id}`}
-      className="group flex max-w-[11rem] shrink-0 gap-2 transition hover:opacity-90"
-    >
-      <div
-        className={`${BOOK_COVER_THUMB_BOX_CLASS} flex items-end bg-gradient-to-b ${toneForBook(book.id)} p-1`}
-      >
-        <p className="font-serif text-[9px] leading-tight text-[#fff7ee] line-clamp-4">{book.title}</p>
-      </div>
-      <div className="min-w-0 flex-1 py-0.5">
-        {book.genreTitle ? (
-          <p className="text-[9px] uppercase tracking-[0.2em] text-[#d8b67c]/80 line-clamp-1">{book.genreTitle}</p>
-        ) : null}
-        <h3 className="mt-0.5 font-serif text-xs leading-snug text-[#fff7ee] line-clamp-3 group-hover:text-[#d8b67c]">
-          {book.title}
-        </h3>
-        <p className="mt-1 text-[10px] text-[#e8ddcd]/72 line-clamp-2">{book.author}</p>
-      </div>
-    </Link>
+    <BookCoverCard
+      bookId={book.id}
+      gutenbergId={book.gutenbergId}
+      coverUrl={book.coverUrl}
+      title={book.title}
+      author={book.author}
+      genreTitle={book.genreTitle}
+      toneClass={toneForBook(book.id)}
+    />
   )
 }
 

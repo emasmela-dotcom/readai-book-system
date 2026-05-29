@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
+import { realCoverAnd } from '@/lib/real-cover-filter'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,12 +19,8 @@ export async function GET() {
     const rows = await sql`
       SELECT id, title, author, gutenberg_id, cover_url, subcategory, category
       FROM books
-      WHERE cover_url IS NOT NULL
-        AND cover_url NOT LIKE '%/cache/epub/%'
-        AND (
-          cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
-          OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
-        )
+      WHERE gutenberg_id IS NOT NULL
+      ${realCoverAnd}
       ORDER BY id DESC
       LIMIT 120
     `

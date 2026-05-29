@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { authorHref } from '@/lib/author-slug'
 import { BookCoverImage } from '@/components/book-cover-image'
 import { BOOK_COVER_THUMB_BOX_CLASS, BOOK_COVER_THUMB_CLASS } from '@/lib/book-cover-size'
+import { hasRealCoverUrl } from '@/lib/book-covers'
 
 export interface ClubBookListItem {
   id: number
@@ -26,9 +27,7 @@ export function BookList({ books, startIndex = 1 }: BookListProps) {
         const authorLink = authorHref(book.author)
         const title = book.title?.trim() || 'Untitled'
         const number = startIndex + i
-        const hasCover =
-          (book.coverUrl != null && book.coverUrl.length > 0) ||
-          (book.gutenbergId != null && book.gutenbergId > 0)
+        const hasCover = hasRealCoverUrl(book.coverUrl)
 
         return (
           <li
@@ -48,13 +47,7 @@ export function BookList({ books, startIndex = 1 }: BookListProps) {
                     className={BOOK_COVER_THUMB_CLASS}
                   />
                 </div>
-              ) : (
-                <div
-                  className={`${BOOK_COVER_THUMB_BOX_CLASS} flex items-end bg-gradient-to-b from-[#3d3428] to-[#1a1510] p-1`}
-                >
-                  <p className="font-serif text-[9px] leading-tight text-[#f5f2ed] line-clamp-4">{title}</p>
-                </div>
-              )}
+              ) : null}
             </Link>
 
             <div className="min-w-0 flex-1">

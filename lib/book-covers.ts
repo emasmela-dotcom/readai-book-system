@@ -78,6 +78,13 @@ export function isUsableStoredCoverUrl(url: string): boolean {
   return isRealCoverUrl(url)
 }
 
+/** Safe for client components — no DB imports. */
+export function hasRealCoverUrl(coverUrl: string | null | undefined): boolean {
+  const url = coverUrl?.trim()
+  if (!url) return false
+  return isRealCoverUrl(url)
+}
+
 function authorSearchTerm(author: string | null | undefined): string | undefined {
   if (!author?.trim()) return undefined
   const cleaned = author.trim().replace(/\s+author$/i, '')
@@ -157,19 +164,12 @@ export async function resolveBestCoverUrl(
   gutenbergId: number,
   options?: ResolveCoverOptions,
 ): Promise<string | null> {
-  if (await hasGutenbergScannedCover(gutenbergId)) {
-    return gutenbergScannedCoverUrl(gutenbergId)
-  }
-
-  const title = options?.title?.trim()
-  if (title) {
-    const fromSearch = await searchOpenLibraryCover(title, options?.author)
-    if (fromSearch) return fromSearch
-  }
-
-  if (await hasOpenLibraryGutenbergCover(gutenbergId)) {
-    return openLibraryGutenbergCoverUrl(gutenbergId)
-  }
-
-  return null
+  const { resolveCoverFromSources } = await import('@/lib/book-cover-sources')
+  const resolved = await resolveCoverFromSources({
+    gutenbergId,
+    title: options?.title ?? '',
+    author: options?.author,
+    coverUrl: null,
+  })
+  return resolved?.url ?? null
 }
