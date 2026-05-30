@@ -15,7 +15,7 @@ export const CURATED_GUTENBERG = [
   { id: 84, title: 'Frankenstein; Or, The Modern Prometheus', author: 'Mary Wollstonecraft Shelley', subjects: ['Science fiction', 'Horror'] },
   { id: 2701, title: 'Moby Dick; Or, The Whale', author: 'Herman Melville', subjects: ['Adventure', 'Sea stories'] },
   { id: 98, title: 'A Tale of Two Cities', author: 'Charles Dickens', subjects: ['Historical fiction', 'France -- Fiction'] },
-  { id: 11, title: "Alice's Adventures in Wonderland", author: 'Lewis Carroll', subjects: ['Fantasy', 'Juvenile literature'] },
+  { id: 11, title: 'Alice in Wonderland', author: 'Lewis Carroll', subjects: ['Fantasy', 'Juvenile literature'] },
   { id: 1661, title: 'The Adventures of Sherlock Holmes', author: 'Arthur Conan Doyle', subjects: ['Mystery', 'Detective'] },
   { id: 345, title: 'Dracula', author: 'Bram Stoker', subjects: ['Horror', 'Vampires'] },
   { id: 174, title: 'The Picture of Dorian Gray', author: 'Oscar Wilde', subjects: ['Fiction'] },

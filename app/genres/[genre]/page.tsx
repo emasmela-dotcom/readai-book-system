@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { sql } from '@/lib/db'
-import { realCoverAnd } from '@/lib/real-cover-filter'
 import { BookList, type ClubBookListItem } from '@/components/book-list'
 import { getAisleById } from '@/lib/bookstore-sections'
 
@@ -41,14 +40,24 @@ export default async function GenrePage({
         WHERE category = ${aisle.category}
           AND subcategory = ${aisle.subcategory}
           AND gutenberg_id IS NOT NULL
-        ${realCoverAnd}
+        AND cover_url IS NOT NULL
+        AND cover_url NOT LIKE '%/cache/epub/%'
+        AND (
+          cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+          OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+        )
       `
     : await sql`
         SELECT COUNT(*)::int as count
         FROM books
         WHERE category = ${aisle.category}
           AND gutenberg_id IS NOT NULL
-        ${realCoverAnd}
+        AND cover_url IS NOT NULL
+        AND cover_url NOT LIKE '%/cache/epub/%'
+        AND (
+          cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+          OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+        )
       `
 
   const totalBooks = countResult[0]?.count ?? 0
@@ -63,7 +72,12 @@ export default async function GenrePage({
         WHERE category = ${aisle.category}
           AND subcategory = ${aisle.subcategory}
           AND gutenberg_id IS NOT NULL
-        ${realCoverAnd}
+        AND cover_url IS NOT NULL
+        AND cover_url NOT LIKE '%/cache/epub/%'
+        AND (
+          cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+          OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+        )
         ORDER BY id DESC
         LIMIT ${PAGE_SIZE} OFFSET ${offset}
       `
@@ -72,7 +86,12 @@ export default async function GenrePage({
         FROM books
         WHERE category = ${aisle.category}
           AND gutenberg_id IS NOT NULL
-        ${realCoverAnd}
+        AND cover_url IS NOT NULL
+        AND cover_url NOT LIKE '%/cache/epub/%'
+        AND (
+          cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+          OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+        )
         ORDER BY id DESC
         LIMIT ${PAGE_SIZE} OFFSET ${offset}
       `

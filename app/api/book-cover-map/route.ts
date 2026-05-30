@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { hasRealCoverUrl, realCoverAnd } from '@/lib/real-cover-filter'
+import { hasRealCoverUrl } from '@/lib/real-cover-filter'
 import { sql } from '@/lib/db'
 
 export const dynamic = 'force-dynamic'
@@ -11,7 +11,12 @@ export async function GET() {
       SELECT id, cover_url
       FROM books
       WHERE gutenberg_id IS NOT NULL
-      ${realCoverAnd}
+      AND cover_url IS NOT NULL
+      AND cover_url NOT LIKE '%/cache/epub/%'
+      AND (
+        cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+        OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+      )
     `
 
     const covers: Record<number, string> = {}

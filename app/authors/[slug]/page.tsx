@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { sql } from '@/lib/db'
-import { realCoverAnd } from '@/lib/real-cover-filter'
 import { BookList, type ClubBookListItem } from '@/components/book-list'
 
 const PAGE_SIZE = 48
@@ -24,7 +23,12 @@ async function resolveAuthorName(slug: string): Promise<string | null> {
     FROM books
     WHERE lower(regexp_replace(trim(author), '[^a-zA-Z0-9]+', '-', 'g')) = ${slug}
       AND gutenberg_id IS NOT NULL
-    ${realCoverAnd}
+    AND cover_url IS NOT NULL
+    AND cover_url NOT LIKE '%/cache/epub/%'
+    AND (
+      cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+      OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+    )
     GROUP BY author
     ORDER BY COUNT(*)::int DESC
     LIMIT 1
@@ -54,7 +58,12 @@ export default async function AuthorPage({
     FROM books
     WHERE author = ${authorName}
       AND gutenberg_id IS NOT NULL
-    ${realCoverAnd}
+    AND cover_url IS NOT NULL
+    AND cover_url NOT LIKE '%/cache/epub/%'
+    AND (
+      cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+      OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+    )
   `
   const totalBooks = countResult[0]?.count ?? 0
   const totalPages = Math.max(1, Math.ceil(totalBooks / PAGE_SIZE))
@@ -66,7 +75,12 @@ export default async function AuthorPage({
     FROM books
     WHERE author = ${authorName}
       AND gutenberg_id IS NOT NULL
-    ${realCoverAnd}
+    AND cover_url IS NOT NULL
+    AND cover_url NOT LIKE '%/cache/epub/%'
+    AND (
+      cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+      OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+    )
     ORDER BY id DESC
     LIMIT ${PAGE_SIZE} OFFSET ${offset}
   `

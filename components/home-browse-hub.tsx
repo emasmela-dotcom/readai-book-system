@@ -44,11 +44,6 @@ interface HomeBrowseHubProps {
   books: BrowseBook[]
   recentBooks: BrowseBook[]
   monthlyPick: BrowseBook | null
-  stats: {
-    fullBooks: number
-    booksToday: number
-    activeRooms: number
-  }
   loading?: boolean
 }
 
@@ -143,7 +138,6 @@ export function HomeBrowseHub({
   books,
   recentBooks,
   monthlyPick,
-  stats,
   loading,
 }: HomeBrowseHubProps) {
   const [savedCount, setSavedCount] = useState(0)
@@ -194,25 +188,7 @@ export function HomeBrowseHub({
 
               <ReadingModeTip className="mt-6 max-w-2xl" />
 
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
-                <div className="border border-white/10 bg-[#18120e] px-4 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">On the shelves</p>
-                  <p className="mt-2 font-serif text-2xl text-[#f6efe7]">{stats.fullBooks.toLocaleString()}</p>
-                  <p className="mt-1 text-sm text-[#eadfce]/72">Full books ready to open cover to cover.</p>
-                </div>
-                <div className="border border-white/10 bg-[#18120e] px-4 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">Open rooms</p>
-                  <p className="mt-2 font-serif text-2xl text-[#f6efe7]">{stats.activeRooms}</p>
-                  <p className="mt-1 text-sm text-[#eadfce]/72">Genre rooms already alive with books.</p>
-                </div>
-                <div className="border border-white/10 bg-[#18120e] px-4 py-3">
-                  <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">Added today</p>
-                  <p className="mt-2 font-serif text-2xl text-[#f6efe7]">{stats.booksToday}</p>
-                  <p className="mt-1 text-sm text-[#eadfce]/72">Fresh titles entering the club today.</p>
-                </div>
-              </div>
-
-              <ul className="mt-6 flex flex-wrap gap-2">
+              <ul className="mt-8 flex flex-wrap gap-2">
                 {GENRE_ROOMS.map((id) => (
                   <li key={id}>
                     <Link
@@ -223,6 +199,14 @@ export function HomeBrowseHub({
                     </Link>
                   </li>
                 ))}
+                <li>
+                  <Link
+                    href="/movies"
+                    className="inline-block border border-white/15 px-3 py-1 text-[11px] uppercase tracking-wider text-[#f0e7db] transition hover:border-[#d8b67c]/60 hover:text-[#d8b67c]"
+                  >
+                    movies
+                  </Link>
+                </li>
                 <li>
                   <Link
                     href="#genres"
@@ -283,6 +267,16 @@ export function HomeBrowseHub({
             body="Move between horror, mystery, romance, fantasy, literary fiction, and every room beyond."
             href="#genres"
             cta="Enter the rooms"
+          />
+        </div>
+
+        <div className="mt-4">
+          <PathCard
+            eyebrow="Film room"
+            title="Movies & movie books"
+            body="Open a film's book on the club shelves when we carry it—not on the PD shelves otherwise."
+            href="/movies"
+            cta="Enter Movies section"
           />
         </div>
 

@@ -7,7 +7,10 @@ import { ReadingModeTip } from '@/components/reading-mode-tip'
 import { BookCoverImage } from '@/components/book-cover-image'
 import { BOOK_COVER_THUMB_BOX_CLASS, BOOK_COVER_THUMB_CLASS } from '@/lib/book-cover-size'
 import { CONNECTED_SOURCES, sourceAccessLabel } from '@/lib/book-sources'
+import { CLIFF_NOTES_SOURCES, cliffNotesAccessLabel } from '@/lib/cliff-notes-sources'
+import { COOKBOOK_SOURCES, cookbookAccessLabel } from '@/lib/cookbook-sources'
 import { MAGAZINE_SOURCES, magazineAccessLabel } from '@/lib/magazine-sources'
+import { MovieSourceLinks } from '@/components/movie-source-links'
 import { categoryLabel } from '@/lib/inventory-labels'
 import { hasRealCoverUrl } from '@/lib/book-covers'
 
@@ -30,9 +33,6 @@ interface StoreSection {
 }
 
 interface StorefrontData {
-  totalBooks: number
-  fullBooks: number
-  booksToday: number
   departments: { category: string; count: number }[]
   sections: StoreSection[]
 }
@@ -87,9 +87,6 @@ export default function ReadAIHome() {
 
         if (data.success) {
           setStore({
-            totalBooks: data.totalBooks,
-            fullBooks: data.fullBooks ?? 0,
-            booksToday: data.booksToday,
             departments: data.departments,
             sections: data.sections.map((section: StoreSection) => ({
               ...section,
@@ -111,11 +108,6 @@ export default function ReadAIHome() {
     return FEATURED_AISLES.map((id) => byId.get(id))
       .filter((s): s is StoreSection => !!s && s.count > 0)
   }, [store])
-
-  const activeGenres = useMemo(
-    () => store?.sections.filter((s) => s.count > 0).length ?? 0,
-    [store],
-  )
 
   const topRooms = useMemo(() => {
     if (!store) return []
@@ -242,8 +234,17 @@ export default function ReadAIHome() {
             <a href="#library" className="hover:text-[#c9a96e]">
               Library
             </a>
+            <Link href="/movies" className="hover:text-[#c9a96e]">
+              Movies
+            </Link>
             <a href="#magazines" className="hover:text-[#c9a96e]">
               Magazine
+            </a>
+            <a href="#cookbooks" className="hover:text-[#c9a96e]">
+              Cookbooks
+            </a>
+            <a href="#cliff-notes" className="hover:text-[#c9a96e]">
+              Cliff Notes
             </a>
             <a href="#sources" className="hover:text-[#c9a96e]">
               Sources
@@ -267,7 +268,7 @@ export default function ReadAIHome() {
                 type="search"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Exact title or author words (e.g. Frozen River)"
+                placeholder="Book title, author, or film (e.g. Pulp Fiction)"
                 className="w-full border border-white/15 bg-[#171311] px-4 py-3 text-sm text-[#f5f2ed] outline-none placeholder:text-[#e8e4df]/45 focus:border-[#c9a96e]"
               />
               <button
@@ -288,12 +289,17 @@ export default function ReadAIHome() {
               ) : searchResults.length === 0 ? (
                 <div className="text-sm text-[#e8e4df]/75">
                   <p>
-                    No match in the club library for{' '}
+                    No public-domain book in the club library for{' '}
                     <span className="text-[#f5f2ed]">&ldquo;{activeSearch}&rdquo;</span>.
                   </p>
-                  <p className="mt-2 text-[#e8e4df]/65">
-                    ReadAI search covers public-domain books already on the shelves. Modern titles like
-                    recent bestsellers may not be ingested yet — try the Sources section for link-outs.
+                  <MovieSourceLinks query={activeSearch} compact />
+                  <p className="mt-4">
+                    <Link
+                      href={`/movies?q=${encodeURIComponent(activeSearch)}`}
+                      className="text-xs uppercase tracking-[0.2em] text-[#c9a96e] hover:underline"
+                    >
+                      Open full Movies section →
+                    </Link>
                   </p>
                 </div>
               ) : (
@@ -350,11 +356,6 @@ export default function ReadAIHome() {
         books={shelfBooks}
         recentBooks={recentBooks}
         monthlyPick={monthlyPick}
-        stats={{
-          fullBooks: store?.fullBooks ?? 0,
-          booksToday: store?.booksToday ?? 0,
-          activeRooms: activeGenres,
-        }}
         loading={loading}
       />
 
@@ -431,14 +432,25 @@ export default function ReadAIHome() {
         </div>
       </section>
 
+      <section id="movies" className="border-t border-white/10 bg-white/[0.02] px-5 py-12 md:px-8 md:py-16">
+        <div className="mx-auto max-w-6xl">
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Film room</p>
+          <h2 className="font-serif text-2xl text-[#e8e4df] md:text-3xl">Movies &amp; movie books</h2>
+          <p className="mt-2 max-w-2xl text-sm text-[#f5f2ed]">
+            Films open their book on the club shelves when we carry the tie-in or novelization.
+          </p>
+          <Link
+            href="/movies"
+            className="mt-6 inline-block border-2 border-[#c9a96e] px-6 py-3 text-xs font-medium uppercase tracking-[0.2em] text-[#c9a96e] transition hover:bg-[#c9a96e]/10"
+          >
+            Enter Movies section
+          </Link>
+        </div>
+      </section>
+
       <section id="magazines" className="border-t border-white/10 bg-white/[0.02] px-5 py-12 md:px-8 md:py-16">
         <div className="mx-auto max-w-6xl">
-          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Magazine</p>
           <h2 className="font-serif text-2xl text-[#e8e4df] md:text-3xl">Magazine picks for variety</h2>
-          <p className="mt-2 max-w-2xl text-sm text-[#e8e4df]/70">
-            Add shorter reads and critical writing alongside books, so the club feels fresh even
-            between long novels.
-          </p>
 
           <ul className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {MAGAZINE_SOURCES.map((source) => (
@@ -452,6 +464,52 @@ export default function ReadAIHome() {
                   </p>
                   <h3 className="mt-2 font-serif text-xl text-[#f5f2ed]">{source.label}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-[#e8e4df]/75">{source.tagline}</p>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section id="cookbooks" className="border-t border-white/10 bg-white/[0.02] px-5 py-12 md:px-8 md:py-16">
+        <div className="mx-auto max-w-6xl">
+          <h2 className="font-serif text-2xl text-[#e8e4df] md:text-3xl">Cookbooks &amp; kitchen reading</h2>
+
+          <ul className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {COOKBOOK_SOURCES.map((source) => (
+              <li
+                key={source.id}
+                className="border border-white/10 bg-[#171311] p-5 transition hover:border-[#c9a96e]/40"
+              >
+                <a href={source.href} target="_blank" rel="noreferrer" className="block">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#c9a96e]">
+                    {cookbookAccessLabel(source.access)}
+                  </p>
+                  <h3 className="mt-2 font-serif text-xl text-[#f5f2ed]">{source.label}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-[#eadfce]">{source.tagline}</p>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section id="cliff-notes" className="border-t border-white/10 px-5 py-12 md:px-8 md:py-16">
+        <div className="mx-auto max-w-6xl">
+          <h2 className="font-serif text-2xl text-[#e8e4df] md:text-3xl">Cliff Notes &amp; study guides</h2>
+
+          <ul className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {CLIFF_NOTES_SOURCES.map((source) => (
+              <li
+                key={source.id}
+                className="border border-white/10 bg-[#171311] p-5 transition hover:border-[#c9a96e]/40"
+              >
+                <a href={source.href} target="_blank" rel="noreferrer" className="block">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#c9a96e]">
+                    {cliffNotesAccessLabel(source.access)}
+                  </p>
+                  <h3 className="mt-2 font-serif text-xl text-[#f5f2ed]">{source.label}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-[#eadfce]">{source.tagline}</p>
                 </a>
               </li>
             ))}

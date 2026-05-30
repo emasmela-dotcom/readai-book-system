@@ -1,6 +1,9 @@
 import { existsSync, readFileSync } from 'fs'
 import { resolve } from 'path'
-import { neon } from '@neondatabase/serverless'
+import { neon, type NeonQueryFunction } from '@neondatabase/serverless'
+
+let sqlClient: NeonQueryFunction<false, false> | null = null
+let sqlClientUrl: string | null = null
 
 /** Prefer DATABASE_URL from .env when present so local `next start` matches scripts/repair. */
 export function getDatabaseUrl(): string {
@@ -29,6 +32,15 @@ export function getDbHost(): string {
   return match?.[1] ?? 'unknown'
 }
 
+export function getSql(): NeonQueryFunction<false, false> {
+  const url = getDatabaseUrl()
+  if (!sqlClient || sqlClientUrl !== url) {
+    sqlClientUrl = url
+    sqlClient = neon(url)
+  }
+  return sqlClient
+}
+
 export function sql(strings: TemplateStringsArray, ...params: unknown[]) {
-  return neon(getDatabaseUrl())(strings, ...params)
+  return getSql()(strings, ...params)
 }

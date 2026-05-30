@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { hasRealCoverUrl, realCoverAnd } from '@/lib/real-cover-filter'
+import { hasRealCoverUrl } from '@/lib/real-cover-filter'
 import { BOOKSTORE_AISLES } from '@/lib/bookstore-sections'
 import { getDbHost, sql } from '@/lib/db'
 
@@ -10,7 +10,12 @@ export async function GET() {
     const totalResult = await sql`
       SELECT COUNT(*)::int as count FROM books
       WHERE gutenberg_id IS NOT NULL
-      ${realCoverAnd}
+      AND cover_url IS NOT NULL
+      AND cover_url NOT LIKE '%/cache/epub/%'
+      AND (
+        cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+        OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+      )
     `
     const totalBooks = totalResult[0]?.count ?? 0
 
@@ -21,7 +26,12 @@ export async function GET() {
       SELECT COUNT(*)::int as count FROM books
       WHERE added_date = ${today}
         AND gutenberg_id IS NOT NULL
-      ${realCoverAnd}
+      AND cover_url IS NOT NULL
+      AND cover_url NOT LIKE '%/cache/epub/%'
+      AND (
+        cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+        OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+      )
     `
     const booksToday = todayResult[0]?.count ?? 0
 
@@ -29,7 +39,12 @@ export async function GET() {
       SELECT category, subcategory, COUNT(*)::int as count
       FROM books
       WHERE gutenberg_id IS NOT NULL
-      ${realCoverAnd}
+      AND cover_url IS NOT NULL
+      AND cover_url NOT LIKE '%/cache/epub/%'
+      AND (
+        cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+        OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+      )
       GROUP BY category, subcategory
     `
     const countMap = new Map<string, number>()
@@ -55,7 +70,12 @@ export async function GET() {
               WHERE category = ${aisle.category}
                 AND subcategory = ${aisle.subcategory}
                 AND gutenberg_id IS NOT NULL
-              ${realCoverAnd}
+              AND cover_url IS NOT NULL
+      AND cover_url NOT LIKE '%/cache/epub/%'
+      AND (
+        cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+        OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+      )
               ORDER BY id DESC
               LIMIT 6
             `
@@ -64,7 +84,12 @@ export async function GET() {
               FROM books
               WHERE category = ${aisle.category}
                 AND gutenberg_id IS NOT NULL
-              ${realCoverAnd}
+              AND cover_url IS NOT NULL
+      AND cover_url NOT LIKE '%/cache/epub/%'
+      AND (
+        cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+        OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+      )
               ORDER BY id DESC
               LIMIT 6
             `
@@ -98,7 +123,12 @@ export async function GET() {
       SELECT category, COUNT(*)::int as count
       FROM books
       WHERE gutenberg_id IS NOT NULL
-      ${realCoverAnd}
+      AND cover_url IS NOT NULL
+      AND cover_url NOT LIKE '%/cache/epub/%'
+      AND (
+        cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+        OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+      )
       GROUP BY category
       ORDER BY count DESC
     `

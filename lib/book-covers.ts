@@ -44,7 +44,7 @@ export async function hasGutenbergScannedCover(gutenbergId: number): Promise<boo
   return buf != null && isUsableCoverBytes(buf.byteLength, MIN_SCANNED_COVER_BYTES)
 }
 
-async function hasOpenLibraryImageUrl(url: string): Promise<boolean> {
+export async function hasOpenLibraryImageUrl(url: string): Promise<boolean> {
   const buf = await fetchImageBytes(url)
   return buf != null && isUsableCoverBytes(buf.byteLength, MIN_OPEN_LIBRARY_COVER_BYTES)
 }

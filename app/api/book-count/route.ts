@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { sql } from '@/lib/db'
-import { realCoverAnd } from '@/lib/real-cover-filter'
 
 export async function GET() {
   try {
@@ -8,7 +7,12 @@ export async function GET() {
     const result = await sql`
       SELECT COUNT(*) as count FROM books
       WHERE gutenberg_id IS NOT NULL
-      ${realCoverAnd}
+      AND cover_url IS NOT NULL
+      AND cover_url NOT LIKE '%/cache/epub/%'
+      AND (
+        cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+        OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+      )
     `
     const totalBooks = parseInt(result[0]?.count || 0)
     
@@ -17,7 +21,12 @@ export async function GET() {
       SELECT category, COUNT(*) as count 
       FROM books 
       WHERE gutenberg_id IS NOT NULL
-      ${realCoverAnd}
+      AND cover_url IS NOT NULL
+      AND cover_url NOT LIKE '%/cache/epub/%'
+      AND (
+        cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+        OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+      )
       GROUP BY category 
       ORDER BY count DESC
     `
@@ -26,7 +35,12 @@ export async function GET() {
       SELECT category, subcategory, COUNT(*) as count
       FROM books
       WHERE gutenberg_id IS NOT NULL
-      ${realCoverAnd}
+      AND cover_url IS NOT NULL
+      AND cover_url NOT LIKE '%/cache/epub/%'
+      AND (
+        cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+        OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+      )
       GROUP BY category, subcategory
       ORDER BY category, count DESC
     `
@@ -38,7 +52,12 @@ export async function GET() {
       FROM books 
       WHERE added_date = ${today}
         AND gutenberg_id IS NOT NULL
-      ${realCoverAnd}
+      AND cover_url IS NOT NULL
+      AND cover_url NOT LIKE '%/cache/epub/%'
+      AND (
+        cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+        OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+      )
     `
     
     // Get recent daily logs
