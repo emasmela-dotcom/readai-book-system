@@ -8,6 +8,8 @@ type PreviewState = {
   coverUrl: string | null
   href: string | null
   bookTitle: string
+  inClub: boolean
+  sourceLabel: string | null
 }
 
 export function MovieBookCoverPreview({ query }: { query: string }) {
@@ -32,6 +34,8 @@ export function MovieBookCoverPreview({ query }: { query: string }) {
           coverUrl: data?.coverUrl ?? null,
           href: data?.href ?? null,
           bookTitle: data?.bookTitle ?? trimmed,
+          inClub: Boolean(data?.inClub),
+          sourceLabel: data?.sourceLabel ?? null,
         })
       })
       .catch(() => {
@@ -51,6 +55,14 @@ export function MovieBookCoverPreview({ query }: { query: string }) {
   const label = state?.bookTitle ?? query.trim()
   const href = state?.href
 
+  const statusLine = loading
+    ? 'Loading movie book…'
+    : href
+      ? state?.inClub
+        ? 'Full book on the club shelves — click to read here.'
+        : `Opens via ${state?.sourceLabel ?? 'connected source'} (read or borrow on that site).`
+      : 'No book link found for this film.'
+
   const body = (
     <div className="flex items-start gap-4 border border-white/10 bg-[#171311] p-4 transition hover:border-[#c9a96e]/40">
       <MovieBookCoverImage
@@ -61,13 +73,7 @@ export function MovieBookCoverPreview({ query }: { query: string }) {
       <div className="min-w-0">
         <p className="text-[10px] uppercase tracking-[0.2em] text-[#c9a96e]">Movie book</p>
         <p className="mt-2 font-serif text-lg text-[#f5f2ed]">{label}</p>
-        <p className="mt-2 text-sm text-[#eadfce]">
-          {loading
-            ? 'Looking on the club shelves…'
-            : href
-              ? 'On the club shelves — click to open the full book.'
-              : 'Not on the club shelves — search the library above for a public-domain title.'}
-        </p>
+        <p className="mt-2 text-sm text-[#eadfce]">{statusLine}</p>
         {href && !loading ? (
           <p className="mt-3 text-[10px] uppercase tracking-wider text-[#c9a96e]">Open book →</p>
         ) : null}
@@ -79,11 +85,21 @@ export function MovieBookCoverPreview({ query }: { query: string }) {
     return <div className="mb-6">{body}</div>
   }
 
+  if (state?.inClub) {
+    return (
+      <div className="mb-6">
+        <Link href={href} className="block">
+          {body}
+        </Link>
+      </div>
+    )
+  }
+
   return (
     <div className="mb-6">
-      <Link href={href} className="block">
+      <a href={href} target="_blank" rel="noreferrer" className="block">
         {body}
-      </Link>
+      </a>
     </div>
   )
 }

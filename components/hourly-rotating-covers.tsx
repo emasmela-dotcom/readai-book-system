@@ -43,12 +43,11 @@ function CoverCard({ book }: { book: CoverBook }) {
   return (
     <Link
       href={`/books/${book.id}`}
-      className="group flex w-[min(100%,11rem)] shrink-0 gap-2 transition hover:opacity-90"
+      className="group flex min-w-0 flex-col gap-2 transition hover:opacity-90"
     >
-      <div className={`relative ${BOOK_COVER_THUMB_BOX_CLASS} bg-gradient-to-b ${toneForBook(book.id)}`}>
-        <div className="absolute inset-0 z-0 flex items-end p-1">
-          <p className="font-serif text-[9px] leading-tight text-[#fff7ee] line-clamp-3">{book.title}</p>
-        </div>
+      <div
+        className={`relative mx-auto ${BOOK_COVER_THUMB_BOX_CLASS} bg-gradient-to-b ${toneForBook(book.id)}`}
+      >
         <BookCoverImage
           bookId={book.id}
           gutenbergId={book.gutenbergId}
@@ -57,11 +56,11 @@ function CoverCard({ book }: { book: CoverBook }) {
           className={`relative z-10 ${BOOK_COVER_THUMB_CLASS}`}
         />
       </div>
-      <div className="min-w-0 flex-1 py-0.5">
-        <p className="font-serif text-xs leading-snug text-[#f5eee6] line-clamp-3 group-hover:text-[#d8b67c]">
+      <div className="min-w-0">
+        <p className="font-serif text-sm font-medium leading-snug text-[#f5f2ed] line-clamp-3 group-hover:text-[#d8b67c]">
           {book.title}
         </p>
-        <p className="mt-1 text-[10px] text-[#e8ddcd]/72 line-clamp-2">{book.author}</p>
+        <p className="mt-1 text-xs leading-snug text-[#eadfce] line-clamp-2">{book.author}</p>
       </div>
     </Link>
   )
@@ -120,7 +119,7 @@ export function HourlyRotatingCovers() {
         <p className="text-xs uppercase tracking-[0.2em] text-[#d8b67c]/80">{hourLabel}</p>
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-4">
+      <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-4">
         {batch.map((book) => (
           <CoverCard key={`${book.id}-${book.gutenbergId}`} book={book} />
         ))}

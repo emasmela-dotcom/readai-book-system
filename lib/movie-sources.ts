@@ -58,18 +58,78 @@ export interface FeaturedFilm {
   year?: number
   /** When the club catalog title differs from the film title */
   clubBookTitle?: string
+  /** Card label when it differs from the film title */
+  bookDisplayTitle?: string
+  /** Open Library / Archive search when the film title alone is ambiguous */
+  bookSearchQuery?: string
+  /** Verified Internet Archive item with read or borrow (not a catalog-only page) */
+  readArchiveId?: string
+  /** No film tie-in book — link to source search instead of guessing a wrong title */
+  searchOnly?: boolean
 }
 
 /** Well-known films — search messaging and the Movies section gallery. */
 export const FEATURED_FILMS: FeaturedFilm[] = [
-  { key: 'pulp fiction', title: 'Pulp Fiction', year: 1994 },
-  { key: 'the godfather', title: 'The Godfather', year: 1972 },
-  { key: 'frozen', title: 'Frozen', year: 2013 },
-  { key: 'frozen river', title: 'Frozen River', year: 2008 },
-  { key: 'the matrix', title: 'The Matrix', year: 1999 },
-  { key: 'inception', title: 'Inception', year: 2010 },
-  { key: 'jaws', title: 'Jaws', year: 1975 },
-  { key: 'titanic', title: 'Titanic', year: 1997 },
+  {
+    key: 'pulp fiction',
+    title: 'Pulp Fiction',
+    year: 1994,
+    bookDisplayTitle: 'Pulp Fiction (Screenplay)',
+    bookSearchQuery: 'Pulp Fiction Quentin Tarantino screenplay',
+    readArchiveId: 'pulpfictionquent00tara',
+  },
+  {
+    key: 'the godfather',
+    title: 'The Godfather',
+    year: 1972,
+    bookSearchQuery: 'The Godfather Mario Puzo',
+    readArchiveId: 'godfatherbook10000mari',
+  },
+  {
+    key: 'frozen',
+    title: 'Frozen',
+    year: 2013,
+    bookSearchQuery: 'Frozen Bill Scollon',
+    readArchiveId: 'frozen0000scol',
+  },
+  {
+    key: 'frozen river',
+    title: 'Frozen River',
+    year: 2008,
+    bookDisplayTitle: 'Frozen River (film — no tie-in novel)',
+    bookSearchQuery: 'Frozen River 2008 film book',
+    searchOnly: true,
+  },
+  {
+    key: 'the matrix',
+    title: 'The Matrix',
+    year: 1999,
+    bookSearchQuery: 'The Matrix Wachowski novel',
+    readArchiveId: 'matrix0000wach',
+  },
+  {
+    key: 'inception',
+    title: 'Inception',
+    year: 2010,
+    bookDisplayTitle: 'Inception (Shooting Script)',
+    bookSearchQuery: 'Inception Christopher Nolan shooting script',
+    readArchiveId: 'inceptionshootin0000nola',
+  },
+  {
+    key: 'jaws',
+    title: 'Jaws',
+    year: 1975,
+    bookSearchQuery: 'Jaws Peter Benchley',
+    readArchiveId: 'jaws0000benc',
+  },
+  {
+    key: 'titanic',
+    title: 'Titanic',
+    year: 1997,
+    bookDisplayTitle: 'Titanic (Illustrated Screenplay)',
+    bookSearchQuery: 'Titanic James Cameron screenplay',
+    readArchiveId: 'titanicjamescame0000came',
+  },
 ]
 
 function encodeQuery(q: string): string {

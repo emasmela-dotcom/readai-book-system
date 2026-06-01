@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { sql } from '@/lib/db'
-import { BookList, type ClubBookListItem } from '@/components/book-list'
+import { fetchCookingShelfBooks, type ShelfBookRow } from '@/lib/aisle-shelf-books'
+import { isExpandedAisle } from '@/lib/aisle-shelf-queries'
+import { BookList } from '@/components/book-list'
 import { getAisleById } from '@/lib/bookstore-sections'
 
 const PAGE_SIZE = 48
@@ -33,6 +35,36 @@ export default async function GenrePage({
 
   const requestedPage = parsePage(getSingleParam(resolvedSearchParams.page))
 
+  let totalBooks: number
+  let books: ShelfBookRow[]
+
+  if (isExpandedAisle(aisle.id) && aisle.id === 'cooking') {
+    const { total } = await fetchCookingShelfBooks(1, 0)
+    totalBooks = total
+    const totalPages = Math.max(1, Math.ceil(totalBooks / PAGE_SIZE))
+    const page = Math.min(requestedPage, totalPages)
+    const offset = (page - 1) * PAGE_SIZE
+    const { rows } = await fetchCookingShelfBooks(PAGE_SIZE, offset)
+    books = rows
+
+    const prevPageHref =
+      page <= 1 ? null : page - 1 === 1 ? `/genres/${aisle.id}` : `/genres/${aisle.id}?page=${page - 1}`
+    const nextPageHref = page >= totalPages ? null : `/genres/${aisle.id}?page=${page + 1}`
+
+    return (
+      <GenreShelfPage
+        aisle={aisle}
+        totalBooks={totalBooks}
+        books={books}
+        page={page}
+        totalPages={totalPages}
+        offset={offset}
+        prevPageHref={prevPageHref}
+        nextPageHref={nextPageHref}
+      />
+    )
+  }
+
   const countResult = aisle.subcategory
     ? await sql`
         SELECT COUNT(*)::int as count
@@ -60,13 +92,13 @@ export default async function GenrePage({
         )
       `
 
-  const totalBooks = countResult[0]?.count ?? 0
+  totalBooks = countResult[0]?.count ?? 0
   const totalPages = Math.max(1, Math.ceil(totalBooks / PAGE_SIZE))
   const page = Math.min(requestedPage, totalPages)
   const offset = (page - 1) * PAGE_SIZE
 
-  const books = aisle.subcategory
-    ? await sql`
+  books = aisle.subcategory
+    ? ((await sql`
         SELECT id, title, author, rating, pages, gutenberg_id, cover_url
         FROM books
         WHERE category = ${aisle.category}
@@ -80,8 +112,8 @@ export default async function GenrePage({
         )
         ORDER BY id DESC
         LIMIT ${PAGE_SIZE} OFFSET ${offset}
-      `
-    : await sql`
+      `) as ShelfBookRow[])
+    : ((await sql`
         SELECT id, title, author, rating, pages, gutenberg_id, cover_url
         FROM books
         WHERE category = ${aisle.category}
@@ -94,12 +126,45 @@ export default async function GenrePage({
         )
         ORDER BY id DESC
         LIMIT ${PAGE_SIZE} OFFSET ${offset}
-      `
+      `) as ShelfBookRow[])
 
   const prevPageHref =
     page <= 1 ? null : page - 1 === 1 ? `/genres/${aisle.id}` : `/genres/${aisle.id}?page=${page - 1}`
   const nextPageHref = page >= totalPages ? null : `/genres/${aisle.id}?page=${page + 1}`
 
+  return (
+    <GenreShelfPage
+      aisle={aisle}
+      totalBooks={totalBooks}
+      books={books}
+      page={page}
+      totalPages={totalPages}
+      offset={offset}
+      prevPageHref={prevPageHref}
+      nextPageHref={nextPageHref}
+    />
+  )
+}
+
+function GenreShelfPage({
+  aisle,
+  totalBooks,
+  books,
+  page,
+  totalPages,
+  offset,
+  prevPageHref,
+  nextPageHref,
+}: {
+  aisle: { id: string; title: string; tagline: string }
+  totalBooks: number
+  books: ShelfBookRow[]
+  page: number
+  totalPages: number
+  offset: number
+  prevPageHref: string | null
+  nextPageHref: string | null
+}) {
   return (
     <main className="min-h-screen bg-[#0e0c0a] px-5 py-10 text-[#e8e4df] md:px-8 md:py-14">
       <div className="mx-auto max-w-6xl">
@@ -113,7 +178,7 @@ export default async function GenrePage({
             <span className="font-serif text-2xl text-[#c9a96e] tabular-nums">
               {totalBooks.toLocaleString()}
             </span>{' '}
-            books with real covers in this genre
+            books with real covers on this shelf
           </p>
         </div>
 

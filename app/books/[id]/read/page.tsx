@@ -1,11 +1,16 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ReaderModeSelect, type ReaderMode } from '@/components/reader-mode-select'
+import { ReadingModeTip } from '@/components/reading-mode-tip'
 import { ReadingProgressTracker } from '@/components/reading-progress-tracker'
+import { SaveBookButton } from '@/components/save-book-button'
+import { ReadScrollSaveDock } from '@/components/read-scroll-save-dock'
 import { sql } from '@/lib/db'
 import { authorHref } from '@/lib/author-slug'
 import { buildBookSourceLinks, sourceAccessLabel } from '@/lib/book-sources'
 import { formatPageText, paginateBookText, resolveBookBody } from '@/lib/book-body'
+import { parseScrollYParam } from '@/lib/reading-position'
+import { RestoreReadingScroll } from '@/components/restore-reading-scroll'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,8 +32,8 @@ export default async function BookReadPage({
 }: {
   params: { id: string } | Promise<{ id: string }>
   searchParams:
-    | { page?: string | string[]; mode?: string | string[] }
-    | Promise<{ page?: string | string[]; mode?: string | string[] }>
+    | { page?: string | string[]; mode?: string | string[]; y?: string | string[] }
+    | Promise<{ page?: string | string[]; mode?: string | string[]; y?: string | string[] }>
 }) {
   const resolvedParams = await Promise.resolve(params)
   const resolvedSearchParams = await Promise.resolve(searchParams)
@@ -51,6 +56,7 @@ export default async function BookReadPage({
 
   const mode = parseMode(resolvedSearchParams.mode)
   const requestedPage = parsePage(resolvedSearchParams.page)
+  const scrollY = parseScrollYParam(resolvedSearchParams.y)
   const { pageText, page, totalPages, wordCount } = paginateBookText(body.text, requestedPage)
   const pageParagraphs = formatPageText(pageText)
   const scrollParagraphs = formatPageText(body.text)
@@ -68,19 +74,24 @@ export default async function BookReadPage({
 
   return (
     <main className="min-h-screen bg-[#0e0c0a] text-[#e8e4df]">
-      <header className="sticky top-0 z-10 border-b border-white/15 bg-[#0e0c0a]/95 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 py-4 md:px-8">
+      <header className="sticky top-0 z-30 border-b border-white/15 bg-[#0e0c0a]/98 backdrop-blur-md">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-5 py-3 md:px-8 md:py-4">
           <Link
             href={`/books/${book.id}`}
-            className="text-xs uppercase tracking-[0.2em] text-[#c9a96e] hover:underline"
+            className="shrink-0 text-xs uppercase tracking-[0.2em] text-[#c9a96e] hover:underline"
           >
             ← Book details
           </Link>
-          <p className="truncate text-sm text-[#f5f2ed] md:text-base">{book.title}</p>
+          <p className="min-w-0 flex-1 truncate text-sm text-[#f5f2ed] md:text-base">{book.title}</p>
+          <SaveBookButton bookId={book.id} size="compact" mode={mode} page={page} />
         </div>
       </header>
 
-      <article className="mx-auto max-w-3xl px-5 py-8 md:px-8 md:py-12">
+      {mode === 'scroll' ? <ReadScrollSaveDock bookId={book.id} mode={mode} page={page} /> : null}
+
+      <article
+        className={`mx-auto max-w-3xl px-5 py-8 md:px-8 md:py-12${mode === 'scroll' ? ' pb-24' : ''}`}
+      >
         <ReadingProgressTracker
           bookId={book.id}
           title={book.title}
@@ -89,6 +100,7 @@ export default async function BookReadPage({
           totalPages={totalPages}
           mode={mode}
         />
+        <RestoreReadingScroll bookId={book.id} mode={mode} scrollYFromUrl={scrollY} />
         <p className="text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">
           Full book · ReadAI club library
         </p>
@@ -111,6 +123,8 @@ export default async function BookReadPage({
           </p>
           <ReaderModeSelect mode={mode} />
         </div>
+
+        {mode === 'pages' ? <ReadingModeTip className="mt-6" /> : null}
 
         <div className="club-reading-body mt-8 space-y-5">
           {(mode === 'pages' ? pageParagraphs : scrollParagraphs).map((paragraph, index) => (

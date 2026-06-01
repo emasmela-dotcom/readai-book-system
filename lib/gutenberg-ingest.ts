@@ -4,6 +4,7 @@ import {
   downloadGutenbergCacheText,
   downloadPlainText,
   fetchGutendexPage,
+  fetchGutendexSearch,
   isFullBookText,
   type GutendexBook,
   wordCount,
@@ -123,8 +124,43 @@ function mapSubjects(subjects: string[]): { category: string; subcategory: strin
   if (s.includes('juvenile') || s.includes('children')) {
     return { category: 'children', subcategory: 'children_fiction' }
   }
+  if (
+    s.includes('cookery') ||
+    s.includes('cooking') ||
+    s.includes('recipes') ||
+    s.includes('kitchen') ||
+    s.includes('food') ||
+    s.includes('diet') ||
+    s.includes('housekeep')
+  ) {
+    return { category: 'non_fiction', subcategory: 'cooking' }
+  }
 
   return { category: 'fiction', subcategory: 'literary' }
+}
+
+function isCookeryCandidate(book: GutendexBook, title: string): boolean {
+  const hay = `${title} ${(book.subjects ?? []).join(' ')}`.toLowerCase()
+  return (
+    /\bcookery\b/.test(hay) ||
+    /\bcook book\b/.test(hay) ||
+    /\bcookbook\b/.test(hay) ||
+    /\bcooking\b/.test(hay) ||
+    /\brecipes?\b/.test(hay) ||
+    /\bkitchen\b/.test(hay) ||
+    /\bhousekeep/.test(hay) ||
+    /\bcuisine\b/.test(hay) ||
+    /\bculinary\b/.test(hay) ||
+    /\bdomestic economy\b/.test(hay) ||
+    /\breceipts\b/.test(hay)
+  )
+}
+
+function shelfForBook(book: GutendexBook, title: string): { category: string; subcategory: string } {
+  if (isCookeryCandidate(book, title)) {
+    return { category: 'non_fiction', subcategory: 'cooking' }
+  }
+  return mapSubjects(book.subjects ?? [])
 }
 
 function descriptionFromText(text: string): string {
@@ -174,7 +210,7 @@ async function insertFullBook(
 ): Promise<{ id: number; title: string; author: string; words: number }> {
   const title = cleanTitle(book.title)
   const author = primaryAuthor(book)
-  const { category, subcategory } = mapSubjects(book.subjects ?? [])
+  const { category, subcategory } = shelfForBook(book, title)
   const words = wordCount(bodyText)
   const pages = estimatePages(words)
   const description = descriptionFromText(bodyText)
@@ -262,6 +298,65 @@ export async function importGutenbergBooks(
 
       try {
         if (!candidate.languages?.includes('en')) {
+          result.skipped++
+          continue
+        }
+
+        if (await alreadyImported(candidate.id, title, author)) {
+          result.skipped++
+          continue
+        }
+
+        const bodyText = await downloadPlainText(candidate.formats)
+        if (!isFullBookText(bodyText)) {
+          result.skipped++
+          continue
+        }
+
+        const inserted = await insertFullBook(candidate, bodyText!)
+        result.imported++
+        result.titles.push(inserted)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        result.errors.push(`${title}: ${message}`)
+      }
+    }
+
+    if (!catalog.next) break
+    page++
+  }
+
+  return result
+}
+
+/** Import public-domain cookery titles from Gutendex (Project Gutenberg catalog). */
+export async function importGutenbergCookeryBooks(targetCount: number): Promise<IngestResult> {
+  const result: IngestResult = {
+    imported: 0,
+    skipped: 0,
+    errors: [],
+    titles: [],
+  }
+
+  let page = 1
+  const maxPages = 10
+
+  while (result.imported < targetCount && page <= maxPages) {
+    const catalog = await fetchGutendexSearch('cookery', page, 'en')
+
+    for (const candidate of catalog.results) {
+      if (result.imported >= targetCount) break
+
+      const title = cleanTitle(candidate.title)
+      const author = primaryAuthor(candidate)
+
+      try {
+        if (!candidate.languages?.includes('en')) {
+          result.skipped++
+          continue
+        }
+
+        if (!isCookeryCandidate(candidate, title)) {
           result.skipped++
           continue
         }

@@ -18,15 +18,15 @@ export function MovieSourceLinks({ query, compact = false }: MovieSourceLinksPro
       {known ? (
         <>
           <span className="text-[#f5f2ed]">{known.title}</span>
-          {known.year ? ` (${known.year})` : ''} is a film — open its book in the{' '}
+          {known.year ? ` (${known.year})` : ''} is a film — open its movie book in the{' '}
         </>
       ) : (
-        <>Open the film&apos;s book in the </>
+        <>Open the film&apos;s movie book in the </>
       )}
       <Link href={`/movies?q=${encodeURIComponent(trimmed)}`} className="text-[#c9a96e] hover:underline">
         Movies section
       </Link>
-      {known ? ' when it is on the club shelves.' : '.'}
+      {known ? ' (club or connected sources).' : '.'}
     </p>
   )
 }

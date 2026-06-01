@@ -3,12 +3,11 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { HourlyRotatingCovers } from '@/components/hourly-rotating-covers'
-import { ReadingModeTip } from '@/components/reading-mode-tip'
 import { BookCoverCard } from '@/components/book-cover-card'
 import { BOOK_COVER_THUMB_BOX_CLASS } from '@/lib/book-cover-size'
 
 const GENRE_ROOMS = ['horror', 'mystery', 'romance', 'fantasy', 'literary', 'sci-fi'] as const
-const SAVED_BOOKS_KEY = 'readai_saved_books'
+import { SAVED_BOOKS_STORAGE_KEY } from '@/lib/saved-books-storage'
 const LAST_READ_KEY = 'readai_last_read'
 const COVER_TONES = [
   'from-[#6d432f] to-[#2a1711]',
@@ -145,7 +144,7 @@ export function HomeBrowseHub({
 
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(SAVED_BOOKS_KEY) ?? '[]')
+      const saved = JSON.parse(localStorage.getItem(SAVED_BOOKS_STORAGE_KEY) ?? '[]')
       setSavedCount(Array.isArray(saved) ? saved.length : 0)
     } catch {
       setSavedCount(0)
@@ -162,6 +161,18 @@ export function HomeBrowseHub({
     } catch {
       setLastRead(null)
     }
+
+    function refreshSavedCount() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(SAVED_BOOKS_STORAGE_KEY) ?? '[]')
+        setSavedCount(Array.isArray(saved) ? saved.length : 0)
+      } catch {
+        setSavedCount(0)
+      }
+    }
+
+    window.addEventListener('readai-saved-books-changed', refreshSavedCount)
+    return () => window.removeEventListener('readai-saved-books-changed', refreshSavedCount)
   }, [])
 
   return (
@@ -185,8 +196,6 @@ export function HomeBrowseHub({
               <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[#f5eee6]">
                 Join a community of readers who live for their next great read.
               </p>
-
-              <ReadingModeTip className="mt-6 max-w-2xl" />
 
               <ul className="mt-8 flex flex-wrap gap-2">
                 {GENRE_ROOMS.map((id) => (
@@ -256,10 +265,11 @@ export function HomeBrowseHub({
             title={savedCount > 0 ? `${savedCount} saved on this device` : 'Build a personal shelf'}
             body={
               savedCount > 0
-                ? 'Saved books are already starting to form a shelf. Open a book page and use Save book to keep going.'
-                : 'Start saving from any book page and your own shelf begins to take shape here.'
+                ? 'Open your shelf to see every title you saved and jump back into reading.'
+                : 'Save your place from any book while reading and your shelf remembers where you stopped.'
             }
-            cta="Saved locally in this browser"
+            href="/saved"
+            cta={savedCount > 0 ? 'Open saved shelf →' : 'View saved shelf →'}
           />
           <PathCard
             eyebrow="Browse by room"
@@ -274,7 +284,7 @@ export function HomeBrowseHub({
           <PathCard
             eyebrow="Film room"
             title="Movies & movie books"
-            body="Open a film's book on the club shelves when we carry it—not on the PD shelves otherwise."
+            body="Open a film's movie book on the club shelves or via connected sources on the web."
             href="/movies"
             cta="Enter Movies section"
           />

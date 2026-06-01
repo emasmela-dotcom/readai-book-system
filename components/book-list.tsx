@@ -30,48 +30,57 @@ export function BookList({ books, startIndex = 1 }: BookListProps) {
         const hasCover = hasRealCoverUrl(book.coverUrl)
 
         return (
-          <li
-            key={book.id}
-            className="flex gap-3 py-3 sm:items-center sm:gap-4"
-          >
-            <span className="w-6 shrink-0 font-mono text-xs tabular-nums text-[#c9a96e]">{number}.</span>
-
-            <Link href={`/books/${book.id}`} className="shrink-0">
-              {hasCover ? (
-                <div className={BOOK_COVER_THUMB_BOX_CLASS}>
-                  <BookCoverImage
-                    bookId={book.id}
-                    gutenbergId={book.gutenbergId ?? undefined}
-                    coverUrl={book.coverUrl ?? undefined}
-                    title={title}
-                    className={BOOK_COVER_THUMB_CLASS}
-                  />
-                </div>
-              ) : null}
-            </Link>
+          <li key={book.id} className="flex gap-3 py-4">
+            <span className="w-6 shrink-0 pt-0.5 font-mono text-xs tabular-nums text-[#c9a96e]">
+              {number}.
+            </span>
 
             <div className="min-w-0 flex-1">
               <Link
                 href={`/books/${book.id}`}
-                className="font-serif text-base text-[#f5f2ed] transition hover:text-[#c9a96e] hover:underline"
+                className="block font-serif text-lg font-medium leading-snug text-[#f5f2ed] transition hover:text-[#c9a96e] hover:underline"
               >
                 {title}
               </Link>
-              <p className="mt-1 text-sm text-[#e8e4df]/72">
-                by{' '}
+              <p className="mt-1 text-sm leading-snug text-[#eadfce]">
                 {authorLink ? (
-                  <Link href={authorLink} className="text-[#c9a96e] hover:underline">
-                    {book.author}
-                  </Link>
+                  <>
+                    by{' '}
+                    <Link href={authorLink} className="text-[#c9a96e] hover:underline">
+                      {book.author}
+                    </Link>
+                  </>
                 ) : (
-                  book.author || 'Unknown author'
+                  <>by {book.author || 'Unknown author'}</>
                 )}
               </p>
-              <div className="mt-1 flex flex-wrap gap-2 text-xs text-[#e8e4df]/70">
-                {book.rating != null && (
-                  <span className="text-[#c9a96e]">{Number(book.rating).toFixed(1)} ★</span>
-                )}
-                {book.pages != null && <span>{book.pages} pp</span>}
+
+              <div className="mt-3 flex flex-wrap items-start gap-3">
+                {hasCover ? (
+                  <Link href={`/books/${book.id}`} className="shrink-0">
+                    <div className={BOOK_COVER_THUMB_BOX_CLASS}>
+                      <BookCoverImage
+                        bookId={book.id}
+                        gutenbergId={book.gutenbergId ?? undefined}
+                        coverUrl={book.coverUrl ?? undefined}
+                        title={title}
+                        className={BOOK_COVER_THUMB_CLASS}
+                      />
+                    </div>
+                  </Link>
+                ) : null}
+                <div className="flex flex-wrap gap-2 text-xs text-[#eadfce]">
+                  {book.rating != null && (
+                    <span className="text-[#c9a96e]">{Number(book.rating).toFixed(1)} ★</span>
+                  )}
+                  {book.pages != null && <span>{book.pages} pp</span>}
+                  <Link
+                    href={`/books/${book.id}/read`}
+                    className="uppercase tracking-[0.15em] text-[#c9a96e] hover:underline"
+                  >
+                    Open book
+                  </Link>
+                </div>
               </div>
             </div>
           </li>

@@ -2,8 +2,40 @@
 
 import { useEffect } from 'react'
 import type { ReaderMode } from '@/components/reader-mode-select'
+import {
+  buildReadHref,
+  formatProgressLabel,
+  readingPositionFromView,
+  type ReadingPosition,
+} from '@/lib/reading-position'
+import { recordReadingPosition } from '@/lib/reading-position-store'
+import { isBookSaved, updateSavedBookPosition } from '@/lib/saved-books-storage'
 
 const LAST_READ_KEY = 'readai_last_read'
+
+function persistProgress(
+  bookId: number,
+  title: string,
+  author: string,
+  totalPages: number,
+  position: ReadingPosition,
+) {
+  recordReadingPosition(bookId, position)
+  if (isBookSaved(bookId)) {
+    updateSavedBookPosition(bookId, position)
+  }
+
+  const href = buildReadHref(bookId, position)
+  localStorage.setItem(
+    LAST_READ_KEY,
+    JSON.stringify({
+      href,
+      title,
+      author,
+      progressLabel: formatProgressLabel(position, totalPages),
+    }),
+  )
+}
 
 export function ReadingProgressTracker({
   bookId,
@@ -21,25 +53,33 @@ export function ReadingProgressTracker({
   mode: ReaderMode
 }) {
   useEffect(() => {
-    const params = new URLSearchParams()
+    persistProgress(bookId, title, author, totalPages, readingPositionFromView(mode, page))
+  }, [author, bookId, mode, page, title, totalPages])
 
-    if (mode === 'scroll') {
-      params.set('mode', 'scroll')
-    } else if (page > 1) {
-      params.set('page', String(page))
+  useEffect(() => {
+    if (mode !== 'scroll') return
+
+    let timeout: ReturnType<typeof setTimeout> | undefined
+
+    function onScroll() {
+      if (timeout) clearTimeout(timeout)
+      timeout = setTimeout(() => {
+        persistProgress(
+          bookId,
+          title,
+          author,
+          totalPages,
+          readingPositionFromView('scroll', page),
+        )
+      }, 350)
     }
 
-    const query = params.toString()
-
-    localStorage.setItem(
-      LAST_READ_KEY,
-      JSON.stringify({
-        href: query ? `/books/${bookId}/read?${query}` : `/books/${bookId}/read`,
-        title,
-        author,
-        progressLabel: mode === 'pages' ? `Page ${page} of ${totalPages}` : 'Continuous scroll',
-      }),
-    )
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      if (timeout) clearTimeout(timeout)
+      window.removeEventListener('scroll', onScroll)
+    }
   }, [author, bookId, mode, page, title, totalPages])
 
   return null

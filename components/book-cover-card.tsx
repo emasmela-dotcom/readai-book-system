@@ -26,12 +26,9 @@ export function BookCoverCard({
   return (
     <Link
       href={`/books/${bookId}`}
-      className="group flex max-w-[11rem] shrink-0 gap-2 transition hover:opacity-90"
+      className="group flex w-[9.5rem] min-w-0 shrink-0 flex-col gap-2 transition hover:opacity-90 sm:w-[10.5rem]"
     >
-      <div className={`relative ${BOOK_COVER_THUMB_BOX_CLASS} bg-gradient-to-b ${toneClass}`}>
-        <div className="absolute inset-0 z-0 flex items-end p-1">
-          <p className="font-serif text-[9px] leading-tight text-[#fff7ee] line-clamp-4">{title}</p>
-        </div>
+      <div className={`relative mx-auto ${BOOK_COVER_THUMB_BOX_CLASS} bg-gradient-to-b ${toneClass}`}>
         <BookCoverImage
           bookId={bookId}
           gutenbergId={gutenbergId}
@@ -40,14 +37,14 @@ export function BookCoverCard({
           className={`relative z-10 ${BOOK_COVER_THUMB_CLASS}`}
         />
       </div>
-      <div className="min-w-0 flex-1 py-0.5">
+      <div className="min-w-0">
         {genreTitle ? (
-          <p className="text-[9px] uppercase tracking-[0.2em] text-[#d8b67c]/80 line-clamp-1">{genreTitle}</p>
+          <p className="text-[9px] uppercase tracking-[0.2em] text-[#d8b67c] line-clamp-1">{genreTitle}</p>
         ) : null}
-        <h3 className="mt-0.5 font-serif text-xs leading-snug text-[#fff7ee] line-clamp-3 group-hover:text-[#d8b67c]">
+        <h3 className="mt-0.5 font-serif text-sm font-medium leading-snug text-[#f5f2ed] line-clamp-3 group-hover:text-[#d8b67c]">
           {title}
         </h3>
-        <p className="mt-1 text-[10px] text-[#e8ddcd]/72 line-clamp-2">{author}</p>
+        <p className="mt-1 text-xs leading-snug text-[#eadfce] line-clamp-2">{author}</p>
       </div>
     </Link>
   )

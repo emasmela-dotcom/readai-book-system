@@ -67,6 +67,20 @@ export async function fetchGutendexPage(page: number): Promise<GutendexResponse>
   return res.json() as Promise<GutendexResponse>
 }
 
+export async function fetchGutendexSearch(
+  query: string,
+  page = 1,
+  languages = 'en',
+): Promise<GutendexResponse> {
+  const params = new URLSearchParams({ search: query.trim(), languages })
+  if (page > 1) params.set('page', String(page))
+  const res = await fetchWithRetry(`https://gutendex.com/books/?${params.toString()}`)
+  if (!res.ok) {
+    throw new Error(`Gutendex search "${query}" page ${page} failed: ${res.status}`)
+  }
+  return res.json() as Promise<GutendexResponse>
+}
+
 /** Plain text from Project Gutenberg cache (works when Gutendex is down). */
 export async function downloadGutenbergCacheText(gutenbergId: number): Promise<string | null> {
   const url = `https://www.gutenberg.org/cache/epub/${gutenbergId}/pg${gutenbergId}.txt`

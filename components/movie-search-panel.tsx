@@ -24,7 +24,11 @@ export function MovieSearchPanel({ initialQuery = '' }: { initialQuery?: string 
       })
       const data = await res.json()
       if (data?.href) {
-        router.push(data.href)
+        if (typeof data.href === 'string' && data.href.startsWith('/')) {
+          router.push(data.href)
+        } else {
+          window.location.href = data.href
+        }
         return
       }
       setActiveQuery(trimmed)
@@ -66,7 +70,7 @@ export function MovieSearchPanel({ initialQuery = '' }: { initialQuery?: string 
         </div>
       ) : (
         <p className="mt-4 text-sm text-[#eadfce]">
-          Enter a film title to open its book on the club shelves when we have it.
+          Enter a film title to open its movie book on the club shelves or via connected sources.
         </p>
       )}
     </div>

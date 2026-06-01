@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { FEATURED_FILMS, matchKnownFilm } from '@/lib/movie-sources'
-import { resolveMovieBook } from '@/lib/movie-book-covers'
+import { resolveFeaturedFilm } from '@/lib/movie-book-covers'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,14 +14,18 @@ export async function GET(request: NextRequest) {
     const known = matchKnownFilm(q)
     const featured = known ? FEATURED_FILMS.find((f) => f.title === known.title) : undefined
     const searchTitle = known?.title ?? q
-    const match = await resolveMovieBook(searchTitle, featured?.clubBookTitle)
+    const display = await resolveFeaturedFilm(
+      featured ?? { title: searchTitle, bookSearchQuery: searchTitle },
+    )
 
     return NextResponse.json(
       {
         success: true,
-        coverUrl: match?.coverUrl ?? null,
-        href: match?.href ?? null,
-        bookTitle: match?.bookTitle ?? searchTitle,
+        coverUrl: display.coverUrl,
+        href: display.href,
+        bookTitle: display.bookTitle,
+        inClub: display.inClub,
+        sourceLabel: display.sourceLabel,
       },
       { headers: { 'Cache-Control': 'no-store' } },
     )

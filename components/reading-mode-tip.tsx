@@ -5,7 +5,8 @@ export function ReadingModeTip({ className = '' }: { className?: string }) {
       role="note"
     >
       <span className="text-[10px] uppercase tracking-[0.2em] text-[#c9a96e]">Tip · </span>
-      Set reading mode to scroll for a smoother reading flow.
+      Use the reading mode control above and choose <strong className="font-medium text-[#f5f2ed]">Scroll</strong>{' '}
+      for a smoother flow through the full text.
     </p>
   )
 }

@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { fetchCookingShelfBooks } from '@/lib/aisle-shelf-books'
+import { isExpandedAisle } from '@/lib/aisle-shelf-queries'
 import { hasRealCoverUrl } from '@/lib/real-cover-filter'
 import { BOOKSTORE_AISLES } from '@/lib/bookstore-sections'
 import { getDbHost, sql } from '@/lib/db'
@@ -63,8 +65,13 @@ export async function GET() {
           }
         }
 
-        const books = aisle.subcategory
-          ? await sql`
+        let books: Record<string, unknown>[]
+
+        if (isExpandedAisle(aisle.id) && aisle.id === 'cooking') {
+          count = (await fetchCookingShelfBooks(1, 0)).total
+          books = (await fetchCookingShelfBooks(6, 0)).rows as Record<string, unknown>[]
+        } else if (aisle.subcategory) {
+          books = (await sql`
               SELECT id, title, author, rating, pages, gutenberg_id, cover_url
               FROM books
               WHERE category = ${aisle.category}
@@ -78,8 +85,9 @@ export async function GET() {
       )
               ORDER BY id DESC
               LIMIT 6
-            `
-          : await sql`
+            `) as Record<string, unknown>[]
+        } else {
+          books = (await sql`
               SELECT id, title, author, rating, pages, gutenberg_id, cover_url
               FROM books
               WHERE category = ${aisle.category}
@@ -92,7 +100,8 @@ export async function GET() {
       )
               ORDER BY id DESC
               LIMIT 6
-            `
+            `) as Record<string, unknown>[]
+        }
 
         return {
           id: aisle.id,

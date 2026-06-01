@@ -3,15 +3,14 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { HomeBrowseHub } from '@/components/home-browse-hub'
-import { ReadingModeTip } from '@/components/reading-mode-tip'
 import { BookCoverImage } from '@/components/book-cover-image'
 import { BOOK_COVER_THUMB_BOX_CLASS, BOOK_COVER_THUMB_CLASS } from '@/lib/book-cover-size'
-import { CONNECTED_SOURCES, sourceAccessLabel } from '@/lib/book-sources'
-import { CLIFF_NOTES_SOURCES, cliffNotesAccessLabel } from '@/lib/cliff-notes-sources'
-import { COOKBOOK_SOURCES, cookbookAccessLabel } from '@/lib/cookbook-sources'
-import { MAGAZINE_SOURCES, magazineAccessLabel } from '@/lib/magazine-sources'
+import { ClubSectionBooksBlock } from '@/components/club-section-books-panel'
+import { ConnectedSourcesBlock } from '@/components/connected-sources-block'
+import { CliffNotesSourcesBlock } from '@/components/cliff-notes-sources-block'
+import { ForDummiesSourcesBlock } from '@/components/for-dummies-sources-block'
+import { GenreRoomBooksPreview } from '@/components/genre-room-books-preview'
 import { MovieSourceLinks } from '@/components/movie-source-links'
-import { categoryLabel } from '@/lib/inventory-labels'
 import { hasRealCoverUrl } from '@/lib/book-covers'
 
 interface ShelfBook {
@@ -234,17 +233,33 @@ export default function ReadAIHome() {
             <a href="#library" className="hover:text-[#c9a96e]">
               Library
             </a>
+            <Link href="/saved" className="hover:text-[#c9a96e]">
+              Saved
+            </Link>
             <Link href="/movies" className="hover:text-[#c9a96e]">
               Movies
             </Link>
             <a href="#magazines" className="hover:text-[#c9a96e]">
               Magazine
             </a>
-            <a href="#cookbooks" className="hover:text-[#c9a96e]">
+            <Link href="/genres/cooking" className="hover:text-[#c9a96e]">
               Cookbooks
-            </a>
-            <a href="#cliff-notes" className="hover:text-[#c9a96e]">
+            </Link>
+            <a
+              href="https://www.cliffsnotes.com/"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-[#c9a96e]"
+            >
               Cliff Notes
+            </a>
+            <a
+              href="https://www.dummies.com/"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-[#c9a96e]"
+            >
+              For Dummies
             </a>
             <a href="#sources" className="hover:text-[#c9a96e]">
               Sources
@@ -279,8 +294,6 @@ export default function ReadAIHome() {
               </button>
             </div>
           </form>
-
-          <ReadingModeTip className="mt-4" />
 
           {activeSearch || searchError ? (
             <div className="mt-4 border-t border-white/10 pt-4">
@@ -374,31 +387,15 @@ export default function ReadAIHome() {
               Rooms are filling as books are added to the club library.
             </p>
           ) : (
-            <ul className="mt-8 divide-y divide-white/10 border-t border-white/10">
-              {featuredSections.map((section) => (
-                <li key={section.id} id={`aisle-${section.id}`} className="py-5">
-                  <div className="flex flex-wrap items-end justify-between gap-3">
-                    <div>
-                      <h3 className="font-serif text-xl text-[#e8e4df]">
-                        <Link
-                          href={`/genres/${section.id}`}
-                          className="transition hover:text-[#c9a96e]"
-                        >
-                          {section.title}
-                        </Link>
-                      </h3>
-                      <p className="mt-1 text-sm italic text-[#e8e4df]/70">{section.tagline}</p>
-                    </div>
-                    <Link
-                      href={`/genres/${section.id}`}
-                      className="text-xs uppercase tracking-wider text-[#e8e4df]/70 transition hover:text-[#c9a96e]"
-                    >
-                      on the shelf →
-                    </Link>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <GenreRoomBooksPreview
+              sections={featuredSections.map((section) => ({
+                id: section.id,
+                title: section.title,
+                tagline: section.tagline,
+                count: section.count,
+                books: section.books,
+              }))}
+            />
           )}
         </div>
       </section>
@@ -408,141 +405,49 @@ export default function ReadAIHome() {
         className="border-t border-white/10 bg-white/[0.02] px-5 py-12 md:px-8 md:py-16"
       >
         <div className="mx-auto max-w-6xl">
-          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Club library</p>
-          <h2 className="font-serif text-2xl text-[#e8e4df]">Shelves across the club</h2>
-          <p className="mt-2 max-w-2xl text-sm text-[#e8e4df]/70">
-            The library is organized by broad shelves so readers can move from fiction into history,
-            biography, science, and beyond without losing the club feel.
-          </p>
-          {store && (
-            <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              {store.departments.map((d) => (
-                <li
-                  key={d.category}
-                  className="border border-white/10 p-4 text-center transition hover:border-[#c9a96e]/50"
-                >
-                  <p className="font-serif text-base text-[#e8e4df]">{categoryLabel(d.category)}</p>
-                  <p className="mt-1 text-[10px] uppercase tracking-wider text-[#e8e4df]/70">
-                    books
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
+          <ClubSectionBooksBlock section="library" limit={12} />
         </div>
       </section>
 
       <section id="movies" className="border-t border-white/10 bg-white/[0.02] px-5 py-12 md:px-8 md:py-16">
         <div className="mx-auto max-w-6xl">
-          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Film room</p>
-          <h2 className="font-serif text-2xl text-[#e8e4df] md:text-3xl">Movies &amp; movie books</h2>
-          <p className="mt-2 max-w-2xl text-sm text-[#f5f2ed]">
-            Films open their book on the club shelves when we carry the tie-in or novelization.
-          </p>
-          <Link
-            href="/movies"
-            className="mt-6 inline-block border-2 border-[#c9a96e] px-6 py-3 text-xs font-medium uppercase tracking-[0.2em] text-[#c9a96e] transition hover:bg-[#c9a96e]/10"
-          >
-            Enter Movies section
-          </Link>
+          <ClubSectionBooksBlock section="movies" limit={12} />
         </div>
       </section>
 
       <section id="magazines" className="border-t border-white/10 bg-white/[0.02] px-5 py-12 md:px-8 md:py-16">
         <div className="mx-auto max-w-6xl">
-          <h2 className="font-serif text-2xl text-[#e8e4df] md:text-3xl">Magazine picks for variety</h2>
-
-          <ul className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {MAGAZINE_SOURCES.map((source) => (
-              <li
-                key={source.id}
-                className="border border-white/10 bg-[#171311] p-5 transition hover:border-[#c9a96e]/40"
-              >
-                <a href={source.href} target="_blank" rel="noreferrer" className="block">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#c9a96e]">
-                    {magazineAccessLabel(source.access)}
-                  </p>
-                  <h3 className="mt-2 font-serif text-xl text-[#f5f2ed]">{source.label}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-[#e8e4df]/75">{source.tagline}</p>
-                </a>
-              </li>
-            ))}
-          </ul>
+          <ClubSectionBooksBlock section="magazines" limit={12} />
         </div>
       </section>
 
       <section id="cookbooks" className="border-t border-white/10 bg-white/[0.02] px-5 py-12 md:px-8 md:py-16">
         <div className="mx-auto max-w-6xl">
-          <h2 className="font-serif text-2xl text-[#e8e4df] md:text-3xl">Cookbooks &amp; kitchen reading</h2>
-
-          <ul className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {COOKBOOK_SOURCES.map((source) => (
-              <li
-                key={source.id}
-                className="border border-white/10 bg-[#171311] p-5 transition hover:border-[#c9a96e]/40"
-              >
-                <a href={source.href} target="_blank" rel="noreferrer" className="block">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#c9a96e]">
-                    {cookbookAccessLabel(source.access)}
-                  </p>
-                  <h3 className="mt-2 font-serif text-xl text-[#f5f2ed]">{source.label}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-[#eadfce]">{source.tagline}</p>
-                </a>
-              </li>
-            ))}
-          </ul>
+          <ClubSectionBooksBlock section="cookbooks" limit={12} />
         </div>
       </section>
 
-      <section id="cliff-notes" className="border-t border-white/10 px-5 py-12 md:px-8 md:py-16">
+      <section
+        id="cliff-notes"
+        className="scroll-mt-24 border-t border-white/10 px-5 py-12 md:px-8 md:py-16"
+      >
         <div className="mx-auto max-w-6xl">
-          <h2 className="font-serif text-2xl text-[#e8e4df] md:text-3xl">Cliff Notes &amp; study guides</h2>
-
-          <ul className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {CLIFF_NOTES_SOURCES.map((source) => (
-              <li
-                key={source.id}
-                className="border border-white/10 bg-[#171311] p-5 transition hover:border-[#c9a96e]/40"
-              >
-                <a href={source.href} target="_blank" rel="noreferrer" className="block">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#c9a96e]">
-                    {cliffNotesAccessLabel(source.access)}
-                  </p>
-                  <h3 className="mt-2 font-serif text-xl text-[#f5f2ed]">{source.label}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-[#eadfce]">{source.tagline}</p>
-                </a>
-              </li>
-            ))}
-          </ul>
+          <CliffNotesSourcesBlock />
         </div>
       </section>
 
-      <section id="sources" className="border-t border-white/10 px-5 py-12 md:px-8 md:py-16">
+      <section
+        id="for-dummies"
+        className="scroll-mt-24 border-t border-white/10 bg-white/[0.02] px-5 py-12 md:px-8 md:py-16"
+      >
         <div className="mx-auto max-w-6xl">
-          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Sources</p>
-          <h2 className="font-serif text-2xl text-[#e8e4df] md:text-3xl">Connected legal sources</h2>
-          <p className="mt-2 max-w-2xl text-sm text-[#e8e4df]/70">
-            ReadAI currently connects readers to legal reading, search, and borrow sources across
-            the web. We surface the club edition first, then point readers to trusted outside
-            sources where it makes sense.
-          </p>
+          <ForDummiesSourcesBlock />
+        </div>
+      </section>
 
-          <ul className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {CONNECTED_SOURCES.map((source) => (
-              <li
-                key={source.id}
-                className="border border-white/10 bg-white/[0.02] p-5 transition hover:border-[#c9a96e]/40"
-              >
-                <a href={source.href} target="_blank" rel="noreferrer" className="block">
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#c9a96e]">
-                    {sourceAccessLabel(source.access)}
-                  </p>
-                  <h3 className="mt-2 font-serif text-xl text-[#f5f2ed]">{source.label}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-[#e8e4df]/75">{source.tagline}</p>
-                </a>
-              </li>
-            ))}
-          </ul>
+      <section id="sources" className="scroll-mt-24 border-t border-white/10 px-5 py-12 md:px-8 md:py-16">
+        <div className="mx-auto max-w-6xl">
+          <ConnectedSourcesBlock />
         </div>
       </section>
 
