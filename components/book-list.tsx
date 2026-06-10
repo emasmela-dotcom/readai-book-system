@@ -37,7 +37,7 @@ export function BookList({ books, startIndex = 1 }: BookListProps) {
 
             <div className="min-w-0 flex-1">
               <Link
-                href={`/books/${book.id}`}
+                href={`/books/${book.id}/read`}
                 className="block font-serif text-lg font-medium leading-snug text-[#f5f2ed] transition hover:text-[#c9a96e] hover:underline"
               >
                 {title}
@@ -57,7 +57,7 @@ export function BookList({ books, startIndex = 1 }: BookListProps) {
 
               <div className="mt-3 flex flex-wrap items-start gap-3">
                 {hasCover ? (
-                  <Link href={`/books/${book.id}`} className="shrink-0">
+                  <Link href={`/books/${book.id}/read`} className="shrink-0">
                     <div className={BOOK_COVER_THUMB_BOX_CLASS}>
                       <BookCoverImage
                         bookId={book.id}

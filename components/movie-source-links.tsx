@@ -6,7 +6,7 @@ interface MovieSourceLinksProps {
   compact?: boolean
 }
 
-/** Shown when a film search has no club library hit on the homepage. */
+/** Shown when a film search needs the Movies section. */
 export function MovieSourceLinks({ query, compact = false }: MovieSourceLinksProps) {
   const trimmed = query.trim()
   if (!trimmed) return null
@@ -26,7 +26,7 @@ export function MovieSourceLinks({ query, compact = false }: MovieSourceLinksPro
       <Link href={`/movies?q=${encodeURIComponent(trimmed)}`} className="text-[#c9a96e] hover:underline">
         Movies section
       </Link>
-      {known ? ' (club or connected sources).' : '.'}
+      {known ? ' (connected sources).' : '.'}
     </p>
   )
 }

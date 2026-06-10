@@ -1,0 +1,2 @@
+-- Password reset is included in add-auth-subscriptions.sql (password_reset_tokens table).
+-- Run that file instead of this one.

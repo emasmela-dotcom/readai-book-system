@@ -42,7 +42,7 @@ function hourlyBatch(allBooks: CoverBook[], batchSize: number, hour: number): Co
 function CoverCard({ book }: { book: CoverBook }) {
   return (
     <Link
-      href={`/books/${book.id}`}
+      href={`/books/${book.id}/read`}
       className="group flex min-w-0 flex-col gap-2 transition hover:opacity-90"
     >
       <div

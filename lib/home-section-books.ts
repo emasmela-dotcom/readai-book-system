@@ -44,7 +44,7 @@ export const HOME_SECTION_META: Record<HomeSectionId, HomeSectionMeta> = {
     id: 'library',
     title: 'Shelves across the club',
     description: 'Recently added full books across every room.',
-    viewAllHref: '/#genres',
+    viewAllHref: '/genres',
     viewAllLabel: 'Browse all rooms',
     emptyMessage: 'The club library is still loading.',
   },

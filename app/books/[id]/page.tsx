@@ -76,7 +76,7 @@ export default async function BookPage({
     <main className="min-h-screen bg-[#0e0c0a] px-5 py-10 text-[#e8e4df] md:px-8 md:py-14">
       <div className="mx-auto max-w-3xl">
         <nav className="mb-8 flex flex-wrap gap-x-4 gap-y-2 text-xs uppercase tracking-[0.2em]">
-          <Link href="/#genres" className="text-[#c9a96e] hover:underline">
+          <Link href="/genres" className="text-[#c9a96e] hover:underline">
             Club shelves
           </Link>
           {aisle && (

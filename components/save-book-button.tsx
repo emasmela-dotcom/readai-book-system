@@ -3,7 +3,12 @@
 import { useEffect, useState } from 'react'
 import type { ReaderMode } from '@/components/reader-mode-select'
 import { readingPositionFromView } from '@/lib/reading-position'
-import { isBookSaved, toggleSavedBookId } from '@/lib/saved-books-storage'
+import {
+  ensureSavedBooksLoaded,
+  isBookSaved,
+  SAVED_BOOKS_CHANGED_EVENT,
+  toggleSavedBookId,
+} from '@/lib/saved-books-storage'
 
 const SIZES = {
   default: 'px-6 py-4 text-sm',
@@ -23,20 +28,39 @@ export function SaveBookButton({
 }) {
   const [saved, setSavedState] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [busy, setBusy] = useState(false)
 
   useEffect(() => {
+    let active = true
     setMounted(true)
-    setSavedState(isBookSaved(bookId))
+
+    ensureSavedBooksLoaded().then(() => {
+      if (active) setSavedState(isBookSaved(bookId))
+    })
+
+    function onChanged() {
+      setSavedState(isBookSaved(bookId))
+    }
+
+    window.addEventListener(SAVED_BOOKS_CHANGED_EVENT, onChanged)
+    return () => {
+      active = false
+      window.removeEventListener(SAVED_BOOKS_CHANGED_EVENT, onChanged)
+    }
   }, [bookId])
 
-  function toggle() {
-    const position =
-      mode != null
-        ? readingPositionFromView(mode, page)
-        : undefined
-    const isSaved = toggleSavedBookId(bookId, position)
-    setSavedState(isSaved)
-    window.dispatchEvent(new Event('readai-saved-books-changed'))
+  async function toggle() {
+    if (busy) return
+    setBusy(true)
+    try {
+      const position = mode != null ? readingPositionFromView(mode, page) : undefined
+      const isSaved = await toggleSavedBookId(bookId, position)
+      setSavedState(isSaved)
+    } catch {
+      // keep prior state on failure
+    } finally {
+      setBusy(false)
+    }
   }
 
   const sizeClass = SIZES[size]
@@ -61,13 +85,15 @@ export function SaveBookButton({
     <button
       type="button"
       onClick={toggle}
+      disabled={busy}
       aria-pressed={saved}
+      aria-busy={busy}
       aria-label={
         saved
           ? 'Remove saved place for this book'
           : 'Save this book and your current reading place'
       }
-      className={`inline-flex items-center justify-center gap-2 border uppercase tracking-[0.2em] transition ${sizeClass} ${stateClass}`}
+      className={`inline-flex items-center justify-center gap-2 border uppercase tracking-[0.2em] transition disabled:opacity-60 ${sizeClass} ${stateClass}`}
     >
       <svg
         width="14"

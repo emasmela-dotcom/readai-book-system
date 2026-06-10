@@ -1,31 +1,20 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { HourlyRotatingCovers } from '@/components/hourly-rotating-covers'
-import { BookCoverCard } from '@/components/book-cover-card'
-import { BOOK_COVER_THUMB_BOX_CLASS } from '@/lib/book-cover-size'
+import { useEffect, useRef, useState } from 'react'
+import { FilmCoverThumb } from '@/components/film-cover-thumb'
+import {
+  ensureSavedBooksLoaded,
+  readSavedBookEntries,
+  SAVED_BOOKS_CHANGED_EVENT,
+} from '@/lib/saved-books-storage'
+import { FEATURED_FILMS } from '@/lib/movie-sources'
+
+const FEATURED_FILM_COUNT = FEATURED_FILMS.length
+const SPOTLIGHT_FILM = FEATURED_FILMS[0]
 
 const GENRE_ROOMS = ['horror', 'mystery', 'romance', 'fantasy', 'literary', 'sci-fi'] as const
-import { SAVED_BOOKS_STORAGE_KEY } from '@/lib/saved-books-storage'
 const LAST_READ_KEY = 'readai_last_read'
-const COVER_TONES = [
-  'from-[#6d432f] to-[#2a1711]',
-  'from-[#374730] to-[#141b11]',
-  'from-[#5a3040] to-[#211017]',
-  'from-[#5d4728] to-[#20160d]',
-  'from-[#284350] to-[#101920]',
-  'from-[#5c3526] to-[#24130f]',
-] as const
-
-interface BrowseBook {
-  id: number
-  title: string
-  author: string
-  genreTitle?: string
-  gutenbergId?: number
-  coverUrl?: string
-}
 
 interface LastReadState {
   href: string
@@ -40,30 +29,7 @@ interface HomeBrowseHubProps {
     title: string
     tagline: string
   }[]
-  books: BrowseBook[]
-  recentBooks: BrowseBook[]
-  monthlyPick: BrowseBook | null
-  loading?: boolean
-}
-
-function toneForBook(bookId: number) {
-  return COVER_TONES[bookId % COVER_TONES.length]
-}
-
-function BookObject({ book }: { book: BrowseBook }) {
-  if (!book.coverUrl?.trim()) return null
-
-  return (
-    <BookCoverCard
-      bookId={book.id}
-      gutenbergId={book.gutenbergId}
-      coverUrl={book.coverUrl}
-      title={book.title}
-      author={book.author}
-      genreTitle={book.genreTitle}
-      toneClass={toneForBook(book.id)}
-    />
-  )
+  genresLoading?: boolean
 }
 
 function PathCard({
@@ -72,19 +38,31 @@ function PathCard({
   body,
   href,
   cta,
+  thumbTitle,
 }: {
   eyebrow: string
   title: string
   body: string
   href?: string
   cta: string
+  thumbTitle?: string
 }) {
   const content = (
     <>
-      <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">{eyebrow}</p>
-      <h3 className="mt-3 font-serif text-xl text-[#f5eee6]">{title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-[#e8ddcd]/76">{body}</p>
-      <p className="mt-4 text-xs uppercase tracking-[0.2em] text-[#d8b67c]">{cta}</p>
+      <div className={thumbTitle ? 'flex items-start gap-4' : undefined}>
+        {thumbTitle ? (
+          <FilmCoverThumb
+            filmTitle={thumbTitle}
+            className="h-20 w-14 shrink-0 border border-white/15 bg-[#18120e] object-cover"
+          />
+        ) : null}
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">{eyebrow}</p>
+          <h3 className="mt-3 font-serif text-xl text-[#f5eee6]">{title}</h3>
+          <p className="mt-2 text-sm leading-relaxed text-[#e8ddcd]/76">{body}</p>
+          <p className="mt-4 text-xs uppercase tracking-[0.2em] text-[#d8b67c]">{cta}</p>
+        </div>
+      </div>
     </>
   )
 
@@ -102,93 +80,92 @@ function PathCard({
   )
 }
 
-function ShelfRail({
-  eyebrow,
-  title,
-  body,
-  books,
-}: {
-  eyebrow: string
-  title: string
-  body: string
-  books: BrowseBook[]
-}) {
-  return (
-    <section className="border border-white/10 bg-[#16110d] p-5 md:p-6">
-      <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">{eyebrow}</p>
-      <h2 className="mt-2 font-serif text-2xl text-[#f5eee6]">{title}</h2>
-      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#e8ddcd]/74">{body}</p>
-
-      {books.length === 0 ? (
-        <p className="mt-6 text-sm text-[#e8ddcd]/66">The shelves are filling as books arrive in the club.</p>
-      ) : (
-        <div className="mt-6 flex gap-4 overflow-x-auto pb-2">
-          {books.map((book) => (
-            <BookObject key={book.id} book={book} />
-          ))}
-        </div>
-      )}
-    </section>
-  )
-}
-
-export function HomeBrowseHub({
-  rooms,
-  books,
-  recentBooks,
-  monthlyPick,
-  loading,
-}: HomeBrowseHubProps) {
+export function HomeBrowseHub({ rooms, genresLoading }: HomeBrowseHubProps) {
   const [savedCount, setSavedCount] = useState(0)
   const [lastRead, setLastRead] = useState<LastReadState | null>(null)
+  const heroLeftRef = useRef<HTMLDivElement>(null)
+  const heroAsideRef = useRef<HTMLElement>(null)
+  const [heroAsideOverflow, setHeroAsideOverflow] = useState(0)
+
+  useEffect(() => {
+    function measureHeroAside() {
+      if (typeof window === 'undefined' || !window.matchMedia('(min-width: 1280px)').matches) {
+        setHeroAsideOverflow(0)
+        return
+      }
+
+      const left = heroLeftRef.current
+      const aside = heroAsideRef.current
+      if (!left || !aside) {
+        setHeroAsideOverflow(0)
+        return
+      }
+
+      setHeroAsideOverflow(Math.max(0, aside.offsetHeight - left.offsetHeight))
+    }
+
+    const left = heroLeftRef.current
+    const aside = heroAsideRef.current
+    if (!left || !aside) {
+      measureHeroAside()
+      return
+    }
+
+    const observer = new ResizeObserver(measureHeroAside)
+    observer.observe(left)
+    observer.observe(aside)
+    window.addEventListener('resize', measureHeroAside)
+    measureHeroAside()
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', measureHeroAside)
+    }
+  }, [])
 
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(SAVED_BOOKS_STORAGE_KEY) ?? '[]')
-      setSavedCount(Array.isArray(saved) ? saved.length : 0)
-    } catch {
-      setSavedCount(0)
-    }
-
-    try {
       const stored = localStorage.getItem(LAST_READ_KEY)
-      if (!stored) return
-
-      const parsed = JSON.parse(stored) as LastReadState
-      if (parsed?.href && parsed?.title) {
-        setLastRead(parsed)
+      if (stored) {
+        const parsed = JSON.parse(stored) as LastReadState
+        if (parsed?.href && parsed?.title) {
+          setLastRead(parsed)
+        }
       }
     } catch {
       setLastRead(null)
     }
 
     function refreshSavedCount() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(SAVED_BOOKS_STORAGE_KEY) ?? '[]')
-        setSavedCount(Array.isArray(saved) ? saved.length : 0)
-      } catch {
-        setSavedCount(0)
-      }
+      setSavedCount(readSavedBookEntries().length)
     }
 
-    window.addEventListener('readai-saved-books-changed', refreshSavedCount)
-    return () => window.removeEventListener('readai-saved-books-changed', refreshSavedCount)
+    ensureSavedBooksLoaded().then(refreshSavedCount)
+    window.addEventListener(SAVED_BOOKS_CHANGED_EVENT, refreshSavedCount)
+    return () => window.removeEventListener(SAVED_BOOKS_CHANGED_EVENT, refreshSavedCount)
   }, [])
 
   return (
     <section id="browse" className="border-b border-white/10 bg-[#120d0b] px-5 py-8 md:px-8 md:py-12">
       <div className="mx-auto max-w-6xl">
-        <div className="relative overflow-hidden border border-white/10 bg-[#17110d] px-6 py-8 md:px-8 md:py-10">
+        <div
+          className="relative border border-white/10 bg-[#17110d] px-6 py-8 md:px-8 md:py-8"
+          style={
+            heroAsideOverflow > 0
+              ? { paddingBottom: `calc(2rem + ${heroAsideOverflow}px)` }
+              : undefined
+          }
+        >
           <div
-            className="pointer-events-none absolute inset-0 opacity-[0.08]"
+            className="pointer-events-none absolute inset-0 overflow-hidden opacity-[0.08]"
             style={{
               backgroundImage:
                 'radial-gradient(rgba(248,240,230,0.9) 0.8px, transparent 0.8px)',
               backgroundSize: '18px 18px',
             }}
           />
-          <div className="relative grid gap-8 xl:grid-cols-[minmax(0,1.3fr)_300px] xl:items-start">
-            <div>
+          <div className="relative">
+            <div ref={heroLeftRef} className="xl:pr-[332px]">
               <p className="text-[11px] uppercase tracking-[0.35em] text-[#d8b67c]">Private reading club</p>
               <h1 className="mt-3 max-w-3xl font-serif text-4xl leading-tight text-[#f6efe7] md:text-5xl">
                 Every book. Every reader. Every story.
@@ -196,8 +173,14 @@ export function HomeBrowseHub({
               <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[#f5eee6]">
                 Join a community of readers who live for their next great read.
               </p>
+              <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#eadfce]">
+                14-day free trial · then $9/month or $79/year.{' '}
+                <Link href="/sign-up" className="font-medium text-[#d8b67c] hover:underline">
+                  Start free trial
+                </Link>
+              </p>
 
-              <ul className="mt-8 flex flex-wrap gap-2">
+              <ul className="mt-6 flex flex-wrap gap-2">
                 {GENRE_ROOMS.map((id) => (
                   <li key={id}>
                     <Link
@@ -218,35 +201,41 @@ export function HomeBrowseHub({
                 </li>
                 <li>
                   <Link
-                    href="#genres"
+                    href="/genres"
                     className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider text-[#d8b67c] hover:underline"
                   >
                     All rooms →
                   </Link>
                 </li>
               </ul>
+
+              <p className="mt-8 text-sm text-[#eadfce]/80">
+                Search any title above, then follow connected source links — Gutenberg, Open Library,
+                Libby, and more.
+              </p>
             </div>
 
-            <aside className="border border-white/10 bg-[#140f0c] p-5">
-              <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">This month&apos;s read</p>
-              {monthlyPick ? (
-                <div className="mt-5">
-                  <BookObject book={monthlyPick} />
-                  <p className="mt-4 text-sm leading-relaxed text-[#eadfce]/74">
-                    Put one book at the center of the homepage and the whole site starts to feel
-                    like a club again.
-                  </p>
-                </div>
-              ) : (
-                <p className="mt-4 text-sm text-[#eadfce]/70">
-                  The club pick appears here once the shelves load.
-                </p>
-              )}
+            <aside
+              ref={heroAsideRef}
+              className="mt-8 border border-white/10 bg-[#140f0c] p-5 xl:absolute xl:right-0 xl:top-0 xl:mt-0 xl:w-[300px]"
+            >
+              <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">Start here</p>
+              <p className="mt-4 font-serif text-xl text-[#f5eee6]">Search connected sources</p>
+              <p className="mt-3 text-sm leading-relaxed text-[#eadfce]/74">
+                ReadAI is your club — books come from legal sites you already trust, not a hosted
+                catalog.
+              </p>
+              <p className="mt-4">
+                <a
+                  href="#search"
+                  className="text-xs uppercase tracking-wider text-[#d8b67c] hover:underline"
+                >
+                  Search sources →
+                </a>
+              </p>
             </aside>
           </div>
         </div>
-
-        <HourlyRotatingCovers />
 
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           <PathCard
@@ -255,27 +244,27 @@ export function HomeBrowseHub({
             body={
               lastRead
                 ? `${lastRead.author} · ${lastRead.progressLabel}`
-                : 'Open any full book and the homepage can bring you back to your last reading session.'
+                : 'When you open a book from a connected source, your last session can appear here.'
             }
             href={lastRead?.href}
-            cta={lastRead ? 'Resume reading' : 'Waiting for your first open book'}
+            cta={lastRead ? 'Resume reading' : 'Waiting for your first session'}
           />
           <PathCard
             eyebrow="Saved books"
-            title={savedCount > 0 ? `${savedCount} saved on this device` : 'Build a personal shelf'}
+            title={savedCount > 0 ? `${savedCount} saved on your account` : 'Build a personal shelf'}
             body={
               savedCount > 0
-                ? 'Open your shelf to see every title you saved and jump back into reading.'
-                : 'Save your place from any book while reading and your shelf remembers where you stopped.'
+                ? 'Open your shelf to see every title saved to your account.'
+                : 'Save titles while browsing connected sources.'
             }
             href="/saved"
             cta={savedCount > 0 ? 'Open saved shelf →' : 'View saved shelf →'}
           />
           <PathCard
             eyebrow="Browse by room"
-            title="Walk the club"
+            title="Walk the rooms"
             body="Move between horror, mystery, romance, fantasy, literary fiction, and every room beyond."
-            href="#genres"
+            href="/genres"
             cta="Enter the rooms"
           />
         </div>
@@ -283,61 +272,46 @@ export function HomeBrowseHub({
         <div className="mt-4">
           <PathCard
             eyebrow="Film room"
-            title="Movies & movie books"
-            body="Open a film's movie book on the club shelves or via connected sources on the web."
+            title={`${FEATURED_FILM_COUNT} movie books`}
+            body="Search a film and follow connected source links for its book."
             href="/movies"
             cta="Enter Movies section"
+            thumbTitle={SPOTLIGHT_FILM.title}
           />
         </div>
 
-        <div className="mt-8">
-          <ShelfRail
-            eyebrow="Currently open in the club"
-            title="Books you can feel as objects"
-            body="A book club homepage should show books as things to pick up, not just text labels to scan."
-            books={books}
-          />
-        </div>
-
-        <div className="mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <ShelfRail
-            eyebrow="Fresh arrivals"
-            title="Recently added to the club"
-            body="New arrivals make the shelves feel alive and worth checking again."
-            books={recentBooks}
-          />
-
-          <aside className="border border-white/10 bg-[#16110d] p-5 md:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">Popular rooms</p>
-                <h2 className="mt-2 font-serif text-2xl text-[#f5eee6]">Browse by room</h2>
-              </div>
-              <Link href="#genres" className="text-xs uppercase tracking-wider text-[#d8b67c] hover:underline">
-                All rooms
-              </Link>
+        <aside className="mt-8 border border-white/10 bg-[#16110d] p-5 md:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">Popular rooms</p>
+              <h2 className="mt-2 font-serif text-2xl text-[#f5eee6]">Browse by room</h2>
             </div>
-            {loading ? (
-              <p className="mt-5 text-sm text-[#eadfce]/68">Loading the reading rooms…</p>
-            ) : rooms.length === 0 ? (
-              <p className="mt-5 text-sm text-[#eadfce]/68">Rooms are filling as new books land in the club.</p>
-            ) : (
-              <ul className="mt-5 space-y-3">
-                {rooms.slice(0, 5).map((room) => (
-                  <li key={room.id} className="border-t border-white/10 pt-3 first:border-t-0 first:pt-0">
-                    <Link
-                      href={`/genres/${room.id}`}
-                      className="font-serif text-lg text-[#f5eee6] transition hover:text-[#d8b67c]"
-                    >
-                      {room.title}
-                    </Link>
-                    <p className="mt-1 text-sm text-[#eadfce]/68">{room.tagline}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </aside>
-        </div>
+            <Link href="/genres" className="text-xs uppercase tracking-wider text-[#d8b67c] hover:underline">
+              All rooms
+            </Link>
+          </div>
+          {genresLoading ? (
+            <p className="mt-5 text-sm text-[#eadfce]/68">Loading the reading rooms…</p>
+          ) : rooms.length === 0 ? (
+            <p className="mt-5 text-sm text-[#eadfce]/68">
+              Rooms load from connected sources — try again in a moment.
+            </p>
+          ) : (
+            <ul className="mt-5 space-y-3">
+              {rooms.slice(0, 5).map((room) => (
+                <li key={room.id} className="border-t border-white/10 pt-3 first:border-t-0 first:pt-0">
+                  <Link
+                    href={`/genres/${room.id}`}
+                    className="font-serif text-lg text-[#f5eee6] transition hover:text-[#d8b67c]"
+                  >
+                    {room.title}
+                  </Link>
+                  <p className="mt-1 text-sm text-[#eadfce]/68">{room.tagline}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </aside>
       </div>
     </section>
   )

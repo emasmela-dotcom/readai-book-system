@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { sql } from '@/lib/db'
-import { fetchCookingShelfBooks, type ShelfBookRow } from '@/lib/aisle-shelf-books'
-import { isExpandedAisle } from '@/lib/aisle-shelf-queries'
-import { BookList } from '@/components/book-list'
+import { SourceShelfBookList } from '@/components/source-shelf-book-list'
+import {
+  fetchGenreSourceShelf,
+  genreAisleHasSourceShelf,
+  genreSourceBrowseLinks,
+} from '@/lib/genre-source-shelves'
 import { getAisleById } from '@/lib/bookstore-sections'
 
 const PAGE_SIZE = 48
@@ -33,187 +35,126 @@ export default async function GenrePage({
   const aisle = getAisleById(resolvedParams.genre)
   if (!aisle) notFound()
 
-  const requestedPage = parsePage(getSingleParam(resolvedSearchParams.page))
-
-  let totalBooks: number
-  let books: ShelfBookRow[]
-
-  if (isExpandedAisle(aisle.id) && aisle.id === 'cooking') {
-    const { total } = await fetchCookingShelfBooks(1, 0)
-    totalBooks = total
-    const totalPages = Math.max(1, Math.ceil(totalBooks / PAGE_SIZE))
-    const page = Math.min(requestedPage, totalPages)
-    const offset = (page - 1) * PAGE_SIZE
-    const { rows } = await fetchCookingShelfBooks(PAGE_SIZE, offset)
-    books = rows
-
-    const prevPageHref =
-      page <= 1 ? null : page - 1 === 1 ? `/genres/${aisle.id}` : `/genres/${aisle.id}?page=${page - 1}`
-    const nextPageHref = page >= totalPages ? null : `/genres/${aisle.id}?page=${page + 1}`
-
+  if (aisle.id === 'movie-books') {
     return (
-      <GenreShelfPage
-        aisle={aisle}
-        totalBooks={totalBooks}
-        books={books}
-        page={page}
-        totalPages={totalPages}
-        offset={offset}
-        prevPageHref={prevPageHref}
-        nextPageHref={nextPageHref}
-      />
+      <main className="min-h-screen bg-[#0e0c0a] px-5 py-10 text-[#e8e4df] md:px-8 md:py-14">
+        <div className="mx-auto max-w-6xl">
+          <Link href="/genres" className="text-xs uppercase tracking-[0.2em] text-[#c9a96e] hover:underline">
+            Back to all rooms
+          </Link>
+          <h1 className="mt-3 font-serif text-4xl text-[#f5f2ed] md:text-5xl">{aisle.title}</h1>
+          <p className="mt-3 max-w-2xl text-sm text-[#e8e4df]/70 md:text-base">{aisle.tagline}</p>
+          <p className="mt-6 text-sm text-[#e8e4df]/80">
+            Film tie-in books live in the{' '}
+            <Link href="/movies" className="text-[#c9a96e] hover:underline">
+              Movies &amp; movie books
+            </Link>{' '}
+            room.
+          </p>
+        </div>
+      </main>
     )
   }
 
-  const countResult = aisle.subcategory
-    ? await sql`
-        SELECT COUNT(*)::int as count
-        FROM books
-        WHERE category = ${aisle.category}
-          AND subcategory = ${aisle.subcategory}
-          AND gutenberg_id IS NOT NULL
-        AND cover_url IS NOT NULL
-        AND cover_url NOT LIKE '%/cache/epub/%'
-        AND (
-          cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
-          OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
-        )
-      `
-    : await sql`
-        SELECT COUNT(*)::int as count
-        FROM books
-        WHERE category = ${aisle.category}
-          AND gutenberg_id IS NOT NULL
-        AND cover_url IS NOT NULL
-        AND cover_url NOT LIKE '%/cache/epub/%'
-        AND (
-          cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
-          OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
-        )
-      `
+  if (!genreAisleHasSourceShelf(aisle.id)) {
+    return (
+      <main className="min-h-screen bg-[#0e0c0a] px-5 py-10 text-[#e8e4df] md:px-8 md:py-14">
+        <div className="mx-auto max-w-6xl">
+          <Link href="/genres" className="text-xs uppercase tracking-[0.2em] text-[#c9a96e] hover:underline">
+            Back to all rooms
+          </Link>
+          <h1 className="mt-3 font-serif text-4xl text-[#f5f2ed] md:text-5xl">{aisle.title}</h1>
+          <p className="mt-3 max-w-2xl text-sm text-[#e8e4df]/70 md:text-base">{aisle.tagline}</p>
+          <p className="mt-6 text-sm text-[#e8e4df]/80">
+            Browse titles via{' '}
+            <Link href="/sources" className="text-[#c9a96e] hover:underline">
+              connected sources
+            </Link>
+            .
+          </p>
+        </div>
+      </main>
+    )
+  }
 
-  totalBooks = countResult[0]?.count ?? 0
-  const totalPages = Math.max(1, Math.ceil(totalBooks / PAGE_SIZE))
+  const requestedPage = parsePage(getSingleParam(resolvedSearchParams.page))
+  const sourceShelf = await fetchGenreSourceShelf(aisle.id, PAGE_SIZE, (requestedPage - 1) * PAGE_SIZE)
+  const totalPages = Math.max(1, Math.ceil(Math.max(sourceShelf.total, 1) / PAGE_SIZE))
   const page = Math.min(requestedPage, totalPages)
   const offset = (page - 1) * PAGE_SIZE
-
-  books = aisle.subcategory
-    ? ((await sql`
-        SELECT id, title, author, rating, pages, gutenberg_id, cover_url
-        FROM books
-        WHERE category = ${aisle.category}
-          AND subcategory = ${aisle.subcategory}
-          AND gutenberg_id IS NOT NULL
-        AND cover_url IS NOT NULL
-        AND cover_url NOT LIKE '%/cache/epub/%'
-        AND (
-          cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
-          OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
-        )
-        ORDER BY id DESC
-        LIMIT ${PAGE_SIZE} OFFSET ${offset}
-      `) as ShelfBookRow[])
-    : ((await sql`
-        SELECT id, title, author, rating, pages, gutenberg_id, cover_url
-        FROM books
-        WHERE category = ${aisle.category}
-          AND gutenberg_id IS NOT NULL
-        AND cover_url IS NOT NULL
-        AND cover_url NOT LIKE '%/cache/epub/%'
-        AND (
-          cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
-          OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
-        )
-        ORDER BY id DESC
-        LIMIT ${PAGE_SIZE} OFFSET ${offset}
-      `) as ShelfBookRow[])
-
+  const browseLinks = genreSourceBrowseLinks(aisle)
   const prevPageHref =
     page <= 1 ? null : page - 1 === 1 ? `/genres/${aisle.id}` : `/genres/${aisle.id}?page=${page - 1}`
-  const nextPageHref = page >= totalPages ? null : `/genres/${aisle.id}?page=${page + 1}`
+  const nextPageHref =
+    page >= totalPages || sourceShelf.total === 0
+      ? null
+      : `/genres/${aisle.id}?page=${page + 1}`
 
-  return (
-    <GenreShelfPage
-      aisle={aisle}
-      totalBooks={totalBooks}
-      books={books}
-      page={page}
-      totalPages={totalPages}
-      offset={offset}
-      prevPageHref={prevPageHref}
-      nextPageHref={nextPageHref}
-    />
-  )
-}
-
-function GenreShelfPage({
-  aisle,
-  totalBooks,
-  books,
-  page,
-  totalPages,
-  offset,
-  prevPageHref,
-  nextPageHref,
-}: {
-  aisle: { id: string; title: string; tagline: string }
-  totalBooks: number
-  books: ShelfBookRow[]
-  page: number
-  totalPages: number
-  offset: number
-  prevPageHref: string | null
-  nextPageHref: string | null
-}) {
   return (
     <main className="min-h-screen bg-[#0e0c0a] px-5 py-10 text-[#e8e4df] md:px-8 md:py-14">
       <div className="mx-auto max-w-6xl">
         <div className="mb-8 border-b border-white/10 pb-6">
-          <Link href="/#genres" className="text-xs uppercase tracking-[0.2em] text-[#c9a96e] hover:underline">
-            Back to the club shelves
+          <Link href="/genres" className="text-xs uppercase tracking-[0.2em] text-[#c9a96e] hover:underline">
+            Back to all rooms
           </Link>
           <h1 className="mt-3 font-serif text-4xl text-[#f5f2ed] md:text-5xl">{aisle.title}</h1>
           <p className="mt-3 max-w-2xl text-sm text-[#e8e4df]/70 md:text-base">{aisle.tagline}</p>
           <p className="mt-5 text-sm text-[#e8e4df]/70">
             <span className="font-serif text-2xl text-[#c9a96e] tabular-nums">
-              {totalBooks.toLocaleString()}
+              {sourceShelf.total > 0 ? sourceShelf.total.toLocaleString() : '—'}
             </span>{' '}
-            books with real covers on this shelf
+            titles via connected sources
           </p>
+          <p className="mt-2 text-xs text-[#eadfce]/80">
+            Each title links to legal source searches — Gutenberg, Open Library, and more. ReadAI does not
+            host a private book catalog.
+          </p>
+          {browseLinks.length > 0 ? (
+            <ul className="mt-4 flex flex-wrap gap-3">
+              {browseLinks.map((link) => (
+                <li key={link.label}>
+                  <a
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs uppercase tracking-wider text-[#c9a96e] hover:underline"
+                  >
+                    {link.label} ↗
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
 
-        {totalBooks === 0 ? (
+        {sourceShelf.books.length === 0 ? (
           <p className="text-sm text-[#e8e4df]/80">
-            Full books for this shelf are being added to the club library. Check back soon, or browse
-            another genre from the homepage.
+            No titles loaded for this room right now. Try{' '}
+            <Link href="/sources" className="text-[#c9a96e] hover:underline">
+              connected sources
+            </Link>{' '}
+            or another{' '}
+            <Link href="/genres" className="text-[#c9a96e] hover:underline">
+              reading room
+            </Link>
+            .
           </p>
-        ) : books.length === 0 ? (
-          <p className="text-sm text-[#e8e4df]/80">No books on this page.</p>
         ) : (
           <>
             <p className="mb-4 text-sm text-[#e8e4df]/80">
               Showing{' '}
               <span className="font-medium text-[#f5f2ed]">
-                {(offset + 1).toLocaleString()}–{Math.min(offset + books.length, totalBooks).toLocaleString()}
+                {(offset + 1).toLocaleString()}–
+                {Math.min(offset + sourceShelf.books.length, sourceShelf.total).toLocaleString()}
               </span>{' '}
-              of <span className="font-medium text-[#f5f2ed]">{totalBooks.toLocaleString()}</span> titles
+              of <span className="font-medium text-[#f5f2ed]">{sourceShelf.total.toLocaleString()}</span>{' '}
+              titles
             </p>
-            <BookList
-              books={books.map((b) => ({
-                id: b.id,
-                title: b.title,
-                author: b.author,
-                rating: b.rating != null ? Number(b.rating) : null,
-                pages: b.pages,
-                gutenbergId: b.gutenberg_id as number,
-                coverUrl: (b.cover_url as string | null) ?? undefined,
-              }))}
-              startIndex={offset + 1}
-            />
+            <SourceShelfBookList books={sourceShelf.books} startIndex={offset + 1} />
           </>
         )}
 
-        {totalBooks > 0 && (
+        {sourceShelf.total > 0 && (
           <div className="mt-10 flex items-center justify-between border-t border-white/10 pt-6">
             <p className="text-xs uppercase tracking-[0.2em] text-[#e8e4df]/55">
               Page {page} of {totalPages}
@@ -234,7 +175,7 @@ function GenreShelfPage({
               {nextPageHref ? (
                 <Link
                   href={nextPageHref}
-                  className="border border-[#c9a96e] px-4 py-2 text-xs uppercase tracking-wider text-[#c9a96e] transition hover:bg-[#c9a96e]/10"
+                  className="border border-white/20 px-4 py-2 text-xs uppercase tracking-wider text-[#c9a96e] transition hover:border-[#c9a96e] hover:text-[#c9a96e]"
                 >
                   Next
                 </Link>

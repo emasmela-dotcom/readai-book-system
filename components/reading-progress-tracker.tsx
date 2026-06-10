@@ -9,7 +9,11 @@ import {
   type ReadingPosition,
 } from '@/lib/reading-position'
 import { recordReadingPosition } from '@/lib/reading-position-store'
-import { isBookSaved, updateSavedBookPosition } from '@/lib/saved-books-storage'
+import {
+  ensureSavedBooksLoaded,
+  isBookSaved,
+  updateSavedBookPosition,
+} from '@/lib/saved-books-storage'
 
 const LAST_READ_KEY = 'readai_last_read'
 
@@ -22,7 +26,7 @@ function persistProgress(
 ) {
   recordReadingPosition(bookId, position)
   if (isBookSaved(bookId)) {
-    updateSavedBookPosition(bookId, position)
+    void updateSavedBookPosition(bookId, position)
   }
 
   const href = buildReadHref(bookId, position)
@@ -52,6 +56,10 @@ export function ReadingProgressTracker({
   totalPages: number
   mode: ReaderMode
 }) {
+  useEffect(() => {
+    void ensureSavedBooksLoaded()
+  }, [])
+
   useEffect(() => {
     persistProgress(bookId, title, author, totalPages, readingPositionFromView(mode, page))
   }, [author, bookId, mode, page, title, totalPages])

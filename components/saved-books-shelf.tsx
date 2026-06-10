@@ -5,19 +5,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { BookCoverCard } from '@/components/book-cover-card'
 import { SaveBookButton } from '@/components/save-book-button'
 import {
-  readSavedBookEntries,
+  fetchSavedBooksList,
   savedBookProgressLabel,
   savedBookReadHref,
-  SAVED_BOOKS_STORAGE_KEY,
+  SAVED_BOOKS_CHANGED_EVENT,
+  type SavedBookListItem,
 } from '@/lib/saved-books-storage'
-
-interface SavedBook {
-  id: number
-  title: string
-  author: string
-  coverUrl?: string
-  gutenbergId?: number
-}
 
 const COVER_TONES = [
   'from-[#6d432f] to-[#2a1711]',
@@ -33,25 +26,16 @@ function toneForBook(bookId: number) {
 }
 
 export function SavedBooksShelf() {
-  const [books, setBooks] = useState<SavedBook[]>([])
+  const [items, setItems] = useState<SavedBookListItem[]>([])
   const [loading, setLoading] = useState(true)
 
   const reload = useCallback(async () => {
-    const entries = readSavedBookEntries()
-    const ids = entries.map((entry) => entry.bookId)
-    if (ids.length === 0) {
-      setBooks([])
-      setLoading(false)
-      return
-    }
-
     setLoading(true)
     try {
-      const res = await fetch(`/api/saved-books?ids=${ids.join(',')}`, { cache: 'no-store' })
-      const data = await res.json()
-      setBooks(Array.isArray(data?.books) ? data.books : [])
+      const rows = await fetchSavedBooksList()
+      setItems(rows)
     } catch {
-      setBooks([])
+      setItems([])
     } finally {
       setLoading(false)
     }
@@ -60,35 +44,27 @@ export function SavedBooksShelf() {
   useEffect(() => {
     reload()
 
-    function onStorage(event: StorageEvent) {
-      if (event.key === SAVED_BOOKS_STORAGE_KEY || event.key === null) reload()
-    }
-
-    window.addEventListener('storage', onStorage)
-    window.addEventListener('readai-saved-books-changed', reload)
-    return () => {
-      window.removeEventListener('storage', onStorage)
-      window.removeEventListener('readai-saved-books-changed', reload)
-    }
+    window.addEventListener(SAVED_BOOKS_CHANGED_EVENT, reload)
+    return () => window.removeEventListener(SAVED_BOOKS_CHANGED_EVENT, reload)
   }, [reload])
 
   if (loading) {
     return <p className="text-sm text-[#eadfce]">Loading your saved shelf…</p>
   }
 
-  if (books.length === 0) {
+  if (items.length === 0) {
     return (
       <div className="border border-white/10 bg-[#171311] p-8 text-center">
-        <p className="text-sm text-[#eadfce]">No saved places on this device yet.</p>
+        <p className="text-sm text-[#eadfce]">No saved places on your account yet.</p>
         <p className="mt-2 text-sm text-[#e8e4df]/75">
           While reading, tap <span className="text-[#f5f2ed]">Save place</span> to keep the book and
           where you stopped.
         </p>
         <Link
-          href="/#library"
+          href="/sources"
           className="mt-6 inline-block border border-[#c9a96e] px-5 py-3 text-xs uppercase tracking-[0.2em] text-[#c9a96e] hover:bg-[#c9a96e]/10"
         >
-          Browse the club
+          Browse sources
         </Link>
       </div>
     )
@@ -96,7 +72,8 @@ export function SavedBooksShelf() {
 
   return (
     <ul className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-      {books.map((book) => {
+      {items.map((item) => {
+        const book = item.book
         const resumeHref = savedBookReadHref(book.id)
         const progress = savedBookProgressLabel(book.id)
 
@@ -112,7 +89,7 @@ export function SavedBooksShelf() {
                 toneClass={toneForBook(book.id)}
               />
               <div className="min-w-0 flex-1">
-                <Link href={`/books/${book.id}`} className="font-serif text-xl text-[#f5f2ed] hover:text-[#c9a96e]">
+                <Link href={resumeHref} className="font-serif text-xl text-[#f5f2ed] hover:text-[#c9a96e]">
                   {book.title}
                 </Link>
                 <p className="mt-1 text-sm text-[#eadfce]">{book.author}</p>

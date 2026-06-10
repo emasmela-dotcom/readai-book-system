@@ -7,6 +7,11 @@ let sqlClientUrl: string | null = null
 
 /** Prefer DATABASE_URL from .env when present so local `next start` matches scripts/repair. */
 export function getDatabaseUrl(): string {
+  const fromEnv = process.env.DATABASE_URL?.trim()
+  if (fromEnv) {
+    return fromEnv.replace(/^["']|["']$/g, '')
+  }
+
   const envPath = resolve(process.cwd(), '.env')
   if (existsSync(envPath)) {
     const line = readFileSync(envPath, 'utf8')
@@ -24,7 +29,7 @@ export function getDatabaseUrl(): string {
   if (!url) {
     throw new Error('DATABASE_URL is not set')
   }
-  return url
+  return url.replace(/^["']|["']$/g, '')
 }
 
 export function getDbHost(): string {

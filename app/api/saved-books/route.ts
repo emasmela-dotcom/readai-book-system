@@ -1,52 +1,108 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { sql } from '@/lib/db'
+import type { ReadingPosition } from '@/lib/reading-position'
+import { getSessionUser } from '@/lib/auth/session'
+import {
+  isBookSavedForUser,
+  listSavedBooksForUser,
+  saveBookForUser,
+  unsaveBookForUser,
+} from '@/lib/saved-books-server'
 
 export const dynamic = 'force-dynamic'
 
-function parseIds(raw: string | null): number[] {
-  if (!raw?.trim()) return []
-  const seen = new Set<number>()
-  const ids: number[] = []
-  for (const part of raw.split(',')) {
-    const n = Number(part.trim())
-    if (!Number.isInteger(n) || n < 1 || seen.has(n)) continue
-    seen.add(n)
-    ids.push(n)
+function parseReadingPosition(value: unknown): ReadingPosition | null {
+  if (!value || typeof value !== 'object') return null
+  const pos = value as ReadingPosition
+  if (pos.mode === 'scroll') {
+    return {
+      mode: 'scroll',
+      scrollY: typeof pos.scrollY === 'number' ? Math.max(0, Math.round(pos.scrollY)) : 0,
+    }
   }
-  return ids.slice(0, 200)
+  if (pos.mode === 'pages') {
+    const page = typeof pos.page === 'number' ? Math.max(1, Math.round(pos.page)) : 1
+    return { mode: 'pages', page }
+  }
+  return null
 }
 
-export async function GET(request: NextRequest) {
-  const ids = parseIds(request.nextUrl.searchParams.get('ids'))
-  if (ids.length === 0) {
-    return NextResponse.json({ success: true, books: [] }, { headers: { 'Cache-Control': 'no-store' } })
+function defaultPosition(): ReadingPosition {
+  return { mode: 'pages', page: 1 }
+}
+
+export async function GET() {
+  const user = await getSessionUser()
+  if (!user) {
+    return NextResponse.json({ success: false, error: 'Sign in required.' }, { status: 401 })
   }
 
   try {
-    const rows = await sql`
-      SELECT id, title, author, cover_url, gutenberg_id
-      FROM books
-      WHERE id = ANY(${ids})
-    `
-
-    const byId = new Map(
-      rows.map((row) => [
-        row.id as number,
-        {
-          id: row.id as number,
-          title: row.title as string,
-          author: row.author as string,
-          coverUrl: (row.cover_url as string | null) ?? undefined,
-          gutenbergId: (row.gutenberg_id as number | null) ?? undefined,
-        },
-      ]),
+    const entries = await listSavedBooksForUser(user.id)
+    return NextResponse.json(
+      {
+        success: true,
+        entries: entries.map((entry) => ({
+          bookId: entry.bookId,
+          position: entry.position,
+          updatedAt: entry.updatedAt,
+          book: {
+            id: entry.bookId,
+            title: entry.title,
+            author: entry.author,
+            coverUrl: entry.coverUrl,
+            gutenbergId: entry.gutenbergId,
+          },
+        })),
+      },
+      { headers: { 'Cache-Control': 'no-store' } },
     )
-
-    const books = ids.map((id) => byId.get(id)).filter((book): book is NonNullable<typeof book> => book != null)
-
-    return NextResponse.json({ success: true, books }, { headers: { 'Cache-Control': 'no-store' } })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json({ success: false, error: message, books: [] }, { status: 500 })
+    return NextResponse.json({ success: false, error: message, entries: [] }, { status: 500 })
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const user = await getSessionUser()
+  if (!user) {
+    return NextResponse.json({ success: false, error: 'Sign in required.' }, { status: 401 })
+  }
+
+  try {
+    const body = (await request.json()) as {
+      bookId?: number
+      position?: unknown
+      action?: 'toggle' | 'save' | 'unsave' | 'update'
+    }
+
+    const bookId = body.bookId
+    if (typeof bookId !== 'number' || !Number.isInteger(bookId) || bookId < 1) {
+      return NextResponse.json({ success: false, error: 'Invalid book.' }, { status: 400 })
+    }
+
+    const action = body.action ?? 'toggle'
+    const position = parseReadingPosition(body.position) ?? defaultPosition()
+
+    if (action === 'unsave') {
+      await unsaveBookForUser(user.id, bookId)
+      return NextResponse.json({ success: true, saved: false })
+    }
+
+    if (action === 'update' || action === 'save') {
+      await saveBookForUser(user.id, bookId, position)
+      return NextResponse.json({ success: true, saved: true })
+    }
+
+    const alreadySaved = await isBookSavedForUser(user.id, bookId)
+    if (alreadySaved) {
+      await unsaveBookForUser(user.id, bookId)
+      return NextResponse.json({ success: true, saved: false })
+    }
+
+    await saveBookForUser(user.id, bookId, position)
+    return NextResponse.json({ success: true, saved: true })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ success: false, error: message }, { status: 500 })
   }
 }

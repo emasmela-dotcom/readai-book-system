@@ -1,20 +1,33 @@
+export type BookSourceId =
+  | 'gutenberg'
+  | 'standard-ebooks'
+  | 'wikisource'
+  | 'wikibooks'
+  | 'wikipedia'
+  | 'open-library'
+  | 'internet-archive'
+  | 'google-books'
+  | 'hathitrust'
+  | 'librivox'
+  | 'manybooks'
+  | 'feedbooks'
+  | 'smashwords'
+  | 'project-muse'
+  | 'doab'
+  | 'oapen'
+  | 'jstor-open'
+  | 'openstax'
+  | 'libby'
+  | 'hoopla'
+  | 'worldcat'
+  | 'library-of-congress'
+  | 'dpla'
+  | 'europeana'
+  | 'british-library'
+  | 'smithsonian-libraries'
+
 export interface BookSourceLink {
-  id:
-    | 'gutenberg'
-    | 'standard-ebooks'
-    | 'wikisource'
-    | 'open-library'
-    | 'internet-archive'
-    | 'google-books'
-    | 'hathitrust'
-    | 'librivox'
-    | 'manybooks'
-    | 'project-muse'
-    | 'doab'
-    | 'jstor-open'
-    | 'libby'
-    | 'worldcat'
-    | 'library-of-congress'
+  id: BookSourceId
   label: string
   tagline: string
   href: string
@@ -22,13 +35,14 @@ export interface BookSourceLink {
 }
 
 export interface ConnectedSource {
-  id: BookSourceLink['id']
+  id: BookSourceId
   label: string
   tagline: string
   href: string
   access: BookSourceLink['access']
 }
 
+/** Canonical list for /sources and per-book legal source links. */
 export const CONNECTED_SOURCES: ConnectedSource[] = [
   {
     id: 'gutenberg',
@@ -45,10 +59,31 @@ export const CONNECTED_SOURCES: ConnectedSource[] = [
     access: 'catalog',
   },
   {
+    id: 'feedbooks',
+    label: 'Feedbooks (public domain)',
+    tagline: 'Curated public-domain ebooks and discoverable free editions.',
+    href: 'https://www.feedbooks.com/catalog/public_domain',
+    access: 'read',
+  },
+  {
     id: 'wikisource',
     label: 'Wikisource',
     tagline: 'Open text transcriptions from the Wikimedia community.',
     href: 'https://en.wikisource.org/',
+    access: 'search',
+  },
+  {
+    id: 'wikibooks',
+    label: 'Wikibooks',
+    tagline: 'Free open textbooks and how-to collections from Wikimedia.',
+    href: 'https://en.wikibooks.org/',
+    access: 'read',
+  },
+  {
+    id: 'wikipedia',
+    label: 'Wikipedia',
+    tagline: 'Author, work, and adaptation articles for context and discovery.',
+    href: 'https://en.wikipedia.org/',
     access: 'search',
   },
   {
@@ -94,6 +129,13 @@ export const CONNECTED_SOURCES: ConnectedSource[] = [
     access: 'catalog',
   },
   {
+    id: 'smashwords',
+    label: 'Smashwords',
+    tagline: 'Discover indie and free-to-read ebook editions.',
+    href: 'https://www.smashwords.com/',
+    access: 'search',
+  },
+  {
     id: 'project-muse',
     label: 'Project MUSE Open Access',
     tagline: 'Open-access humanities and serious nonfiction reading.',
@@ -106,6 +148,20 @@ export const CONNECTED_SOURCES: ConnectedSource[] = [
     tagline: 'Open-access books across academic and general-interest subjects.',
     href: 'https://www.doabooks.org/',
     access: 'catalog',
+  },
+  {
+    id: 'oapen',
+    label: 'OAPEN Library',
+    tagline: 'Open-access academic books and scholarly monographs.',
+    href: 'https://library.oapen.org/',
+    access: 'catalog',
+  },
+  {
+    id: 'openstax',
+    label: 'OpenStax',
+    tagline: 'Free peer-reviewed textbooks for school and college subjects.',
+    href: 'https://openstax.org/',
+    access: 'read',
   },
   {
     id: 'jstor-open',
@@ -122,10 +178,31 @@ export const CONNECTED_SOURCES: ConnectedSource[] = [
     access: 'borrow',
   },
   {
+    id: 'hoopla',
+    label: 'Hoopla',
+    tagline: 'Library ebooks, audiobooks, and media with a participating card.',
+    href: 'https://www.hoopladigital.com/',
+    access: 'borrow',
+  },
+  {
     id: 'worldcat',
     label: 'WorldCat',
     tagline: 'Library catalog discovery across institutions worldwide.',
     href: 'https://search.worldcat.org/',
+    access: 'search',
+  },
+  {
+    id: 'dpla',
+    label: 'Digital Public Library of America',
+    tagline: 'Millions of digitized items from libraries, archives, and museums.',
+    href: 'https://dp.la/',
+    access: 'search',
+  },
+  {
+    id: 'europeana',
+    label: 'Europeana',
+    tagline: 'European cultural heritage texts, books, and digitized collections.',
+    href: 'https://www.europeana.eu/',
     access: 'search',
   },
   {
@@ -135,9 +212,23 @@ export const CONNECTED_SOURCES: ConnectedSource[] = [
     href: 'https://www.loc.gov/collections/',
     access: 'catalog',
   },
+  {
+    id: 'british-library',
+    label: 'British Library',
+    tagline: 'Explore catalog and digitized collections from the UK national library.',
+    href: 'https://www.bl.uk/',
+    access: 'catalog',
+  },
+  {
+    id: 'smithsonian-libraries',
+    label: 'Smithsonian Libraries',
+    tagline: 'Digitized books and research materials from Smithsonian collections.',
+    href: 'https://library.si.edu/',
+    access: 'catalog',
+  },
 ]
 
-interface SourceBookInput {
+export interface SourceBookInput {
   title: string
   author: string
   gutenbergId?: number | null
@@ -147,50 +238,102 @@ function buildQuery(title: string, author: string): string {
   return encodeURIComponent([title, author].filter(Boolean).join(' ').trim())
 }
 
-export function buildBookSourceLinks(book: SourceBookInput): BookSourceLink[] {
-  const query = buildQuery(book.title, book.author)
+function catalogHref(id: BookSourceId): string | null {
+  const source = CONNECTED_SOURCES.find((entry) => entry.id === id)
+  return source?.href ?? null
+}
 
-  return [
-    ...(book.gutenbergId
-      ? [
-          {
-            id: 'gutenberg' as const,
-            label: 'Project Gutenberg',
-            tagline: 'Read the public-domain edition directly.',
-            href: `https://www.gutenberg.org/ebooks/${book.gutenbergId}`,
-            access: 'read' as const,
-          },
-        ]
-      : []),
-    {
-      id: 'standard-ebooks',
-      label: 'Standard Ebooks',
-      tagline: 'Browse polished public-domain editions.',
-      href: 'https://standardebooks.org/ebooks',
-      access: 'catalog',
-    },
-    {
-      id: 'wikisource',
-      label: 'Wikisource',
-      tagline: 'Search open text transcriptions.',
-      href: `https://en.wikisource.org/w/index.php?search=${query}&title=Special%3ASearch`,
-      access: 'search',
-    },
-    {
-      id: 'open-library',
-      label: 'Open Library',
-      tagline: 'Search previews and borrowable copies.',
-      href: `https://openlibrary.org/search?q=${query}`,
-      access: 'borrow',
-    },
-    {
-      id: 'internet-archive',
-      label: 'Internet Archive',
-      tagline: 'Search scans and borrowable editions.',
-      href: `https://archive.org/search?query=${query}`,
-      access: 'borrow',
-    },
-  ]
+/** Per-title deep link for legal source buttons on book pages. */
+export function resolveBookSourceHref(id: BookSourceId, book: SourceBookInput): string {
+  const q = buildQuery(book.title, book.author)
+
+  switch (id) {
+    case 'gutenberg':
+      return book.gutenbergId
+        ? `https://www.gutenberg.org/ebooks/${book.gutenbergId}`
+        : `https://www.gutenberg.org/ebooks/search/?query=${q}`
+    case 'standard-ebooks':
+      return `https://standardebooks.org/ebooks?search=${q}`
+    case 'feedbooks':
+      return `https://www.feedbooks.com/search?query=${q}`
+    case 'wikisource':
+      return `https://en.wikisource.org/w/index.php?search=${q}&title=Special%3ASearch`
+    case 'wikibooks':
+      return `https://en.wikibooks.org/w/index.php?search=${q}&title=Special%3ASearch`
+    case 'wikipedia':
+      return `https://en.wikipedia.org/w/index.php?search=${q}&title=Special%3ASearch`
+    case 'open-library':
+      return `https://openlibrary.org/search?q=${q}`
+    case 'internet-archive':
+      return `https://archive.org/search?query=${q}`
+    case 'google-books':
+      return `https://books.google.com/books?q=${q}`
+    case 'hathitrust':
+      return `https://babel.hathitrust.org/cgi/ls?field1=ocr&q1=${q}`
+    case 'librivox':
+      return `https://librivox.org/search?search=${q}`
+    case 'manybooks':
+      return `https://manybooks.net/search-book?search=${q}`
+    case 'smashwords':
+      return `https://www.smashwords.com/books/search?query=${q}`
+    case 'project-muse':
+      return `https://muse.jhu.edu/search?q=${q}`
+    case 'doab':
+      return `https://www.doabooks.org/doab?func=search&query=${q}`
+    case 'oapen':
+      return `https://library.oapen.org/search?query=${q}`
+    case 'openstax':
+      return `https://openstax.org/search?q=${q}`
+    case 'jstor-open':
+      return `https://www.jstor.org/action/doBasicSearch?Query=${q}`
+    case 'libby':
+      return catalogHref('libby')!
+    case 'hoopla':
+      return catalogHref('hoopla')!
+    case 'worldcat':
+      return `https://search.worldcat.org/search?q=${q}`
+    case 'dpla':
+      return `https://dp.la/search?q=${q}`
+    case 'europeana':
+      return `https://www.europeana.eu/en/search?query=${q}`
+    case 'library-of-congress':
+      return `https://www.loc.gov/search/?q=${q}`
+    case 'british-library':
+      return `https://explore.bl.uk/primo_library/libweb/primo_search?query=any,contains,${q}`
+    case 'smithsonian-libraries':
+      return `https://library.si.edu/search/node/${q}`
+    default:
+      return catalogHref(id) ?? '#'
+  }
+}
+
+export function buildBookSourceLinks(book: SourceBookInput): BookSourceLink[] {
+  return CONNECTED_SOURCES.map((source) => ({
+    id: source.id,
+    label: source.label,
+    tagline:
+      source.id === 'gutenberg' && book.gutenbergId
+        ? 'Read the public-domain edition directly.'
+        : source.tagline,
+    href: resolveBookSourceHref(source.id, book),
+    access:
+      source.id === 'gutenberg' && !book.gutenbergId ? 'search' : source.access,
+  }))
+}
+
+const READABLE_SOURCE_IDS: BookSourceId[] = [
+  'gutenberg',
+  'standard-ebooks',
+  'feedbooks',
+  'wikisource',
+  'wikibooks',
+  'librivox',
+  'openstax',
+]
+
+/** Source links for titles with a confirmed readable edition only. */
+export function buildReadableSourceLinks(book: SourceBookInput): BookSourceLink[] {
+  return buildBookSourceLinks(book).filter((link) => READABLE_SOURCE_IDS.includes(link.id))
 }
 
 export function sourceAccessLabel(access: BookSourceLink['access']): string {

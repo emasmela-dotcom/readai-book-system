@@ -1,11 +1,9 @@
 'use client'
 
 import { type FormEvent, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { MovieBookCoverPreview } from '@/components/movie-book-cover-preview'
 
 export function MovieSearchPanel({ initialQuery = '' }: { initialQuery?: string }) {
-  const router = useRouter()
   const [query, setQuery] = useState(initialQuery)
   const [activeQuery, setActiveQuery] = useState(initialQuery.trim())
   const [loading, setLoading] = useState(false)
@@ -16,27 +14,8 @@ export function MovieSearchPanel({ initialQuery = '' }: { initialQuery?: string 
     if (!trimmed) return
 
     setLoading(true)
-    setActiveQuery('')
-
-    try {
-      const res = await fetch(`/api/movie-book-cover?q=${encodeURIComponent(trimmed)}`, {
-        cache: 'no-store',
-      })
-      const data = await res.json()
-      if (data?.href) {
-        if (typeof data.href === 'string' && data.href.startsWith('/')) {
-          router.push(data.href)
-        } else {
-          window.location.href = data.href
-        }
-        return
-      }
-      setActiveQuery(trimmed)
-    } catch {
-      setActiveQuery(trimmed)
-    } finally {
-      setLoading(false)
-    }
+    setActiveQuery(trimmed)
+    setLoading(false)
   }
 
   return (
@@ -51,7 +30,7 @@ export function MovieSearchPanel({ initialQuery = '' }: { initialQuery?: string 
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="e.g. Pulp Fiction"
+            placeholder="e.g. The Godfather"
             className="mt-2 w-full border border-white/15 bg-[#171311] px-4 py-3 text-sm text-[#f5f2ed] outline-none placeholder:text-[#b8aea3] focus:border-[#c9a96e]"
           />
         </div>
@@ -60,7 +39,7 @@ export function MovieSearchPanel({ initialQuery = '' }: { initialQuery?: string 
           disabled={loading}
           className="border border-[#c9a96e] bg-[#c9a96e] px-5 py-3 text-xs font-medium uppercase tracking-[0.2em] text-[#0e0c0a] transition hover:bg-[#d8be84] disabled:opacity-60"
         >
-          {loading ? 'Opening…' : 'Open book'}
+          {loading ? 'Searching…' : 'Search sources'}
         </button>
       </form>
 
@@ -70,7 +49,7 @@ export function MovieSearchPanel({ initialQuery = '' }: { initialQuery?: string 
         </div>
       ) : (
         <p className="mt-4 text-sm text-[#eadfce]">
-          Enter a film title to open its movie book on the club shelves or via connected sources.
+          Enter a film title to see connected source links for its movie book.
         </p>
       )}
     </div>

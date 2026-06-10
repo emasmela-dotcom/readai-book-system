@@ -25,7 +25,7 @@ export function BookCoverCard({
 }: BookCoverCardProps) {
   return (
     <Link
-      href={`/books/${bookId}`}
+      href={`/books/${bookId}/read`}
       className="group flex w-[9.5rem] min-w-0 shrink-0 flex-col gap-2 transition hover:opacity-90 sm:w-[10.5rem]"
     >
       <div className={`relative mx-auto ${BOOK_COVER_THUMB_BOX_CLASS} bg-gradient-to-b ${toneClass}`}>

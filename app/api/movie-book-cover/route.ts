@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get('q')?.trim() ?? ''
   if (!q) {
-    return NextResponse.json({ success: false, coverUrl: null, href: null }, { status: 400 })
+    return NextResponse.json({ success: false, coverUrl: null }, { status: 400 })
   }
 
   try {
@@ -22,17 +22,16 @@ export async function GET(request: NextRequest) {
       {
         success: true,
         coverUrl: display.coverUrl,
-        href: display.href,
         bookTitle: display.bookTitle,
-        inClub: display.inClub,
-        sourceLabel: display.sourceLabel,
+        sources: display.sources,
+        searchHref: display.searchHref,
       },
       { headers: { 'Cache-Control': 'no-store' } },
     )
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
-      { success: false, error: message, coverUrl: null, href: null },
+      { success: false, error: message, coverUrl: null },
       { status: 500 },
     )
   }

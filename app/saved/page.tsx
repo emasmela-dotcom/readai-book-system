@@ -3,7 +3,7 @@ import { SavedBooksShelf } from '@/components/saved-books-shelf'
 
 export const metadata = {
   title: 'Saved Books | ReadAI',
-  description: 'Your saved books on this device.',
+  description: 'Your saved books on your ReadAI account.',
 }
 
 export default function SavedBooksPage() {
@@ -22,9 +22,9 @@ export default function SavedBooksPage() {
           <p className="text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Your shelf</p>
           <h1 className="mt-3 font-serif text-4xl text-[#f5f2ed] md:text-5xl">Saved books</h1>
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-[#eadfce]">
-            Each saved entry keeps the book and where you stopped (page or scroll position) on this
-            browser only. Tap <span className="text-[#f5f2ed]">Save place</span> while reading to
-            update it.
+            Each saved entry keeps the book and where you stopped (page or scroll position) on your
+            account. Tap <span className="text-[#f5f2ed]">Save place</span> while reading to update
+            it.
           </p>
         </header>
 

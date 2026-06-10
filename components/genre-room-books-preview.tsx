@@ -23,7 +23,7 @@ export function GenreRoomBooksPreview({ sections }: { sections: RoomPreviewSecti
   if (sections.length === 0) {
     return (
       <p className="mt-8 text-sm text-[#e8e4df]/70">
-        Rooms are filling as books are added to the club library.
+        Reading rooms are loading.
       </p>
     )
   }
@@ -52,7 +52,7 @@ export function GenreRoomBooksPreview({ sections }: { sections: RoomPreviewSecti
                 </h3>
                 <p className="mt-1 text-sm italic text-[#e8e4df]/70">{section.tagline}</p>
                 <p className="mt-2 text-xs text-[#eadfce]">
-                  {section.count.toLocaleString()} books on this shelf
+                  {section.count.toLocaleString()} titles via sources
                 </p>
               </div>
               <Link

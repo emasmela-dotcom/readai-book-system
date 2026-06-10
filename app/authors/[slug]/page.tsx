@@ -93,7 +93,7 @@ export default async function AuthorPage({
     <main className="min-h-screen bg-[#0e0c0a] px-5 py-10 text-[#e8e4df] md:px-8 md:py-14">
       <div className="mx-auto max-w-6xl">
         <div className="mb-8 border-b border-white/10 pb-6">
-          <Link href="/#genres" className="text-xs uppercase tracking-[0.2em] text-[#c9a96e] hover:underline">
+          <Link href="/genres" className="text-xs uppercase tracking-[0.2em] text-[#c9a96e] hover:underline">
             Back to the club shelves
           </Link>
           <p className="mt-3 text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Author shelf</p>
