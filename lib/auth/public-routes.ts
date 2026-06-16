@@ -6,12 +6,14 @@ const PUBLIC_PATHS = new Set([
   '/reset-password',
   '/sources',
   '/subscribe',
+  '/support',
 ])
 
 const PUBLIC_API_PREFIXES = [
   '/api/auth',
   '/api/stripe/webhook',
   '/api/club-search',
+  '/api/support',
   '/api/movie-book-cover',
   '/api/storefront',
   '/api/genre-listings',
