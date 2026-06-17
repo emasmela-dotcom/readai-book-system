@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import nodemailer from 'nodemailer'
+import { getGmailAppPassword } from '@/lib/support/gmail-credentials'
 import { gmailSenderAddress, SUPPORT_INBOX, supportFromAddress } from '@/lib/support/config'
 
 export type SupportEmailInput = {
@@ -42,11 +43,13 @@ async function sendViaResend(input: SupportEmailInput): Promise<SupportEmailResu
 
 async function sendViaGmail(input: SupportEmailInput): Promise<SupportEmailResult> {
   const user = gmailSenderAddress()
-  const pass = process.env.GMAIL_APP_PASSWORD?.trim().replace(/\s+/g, '')
+  const pass = await getGmailAppPassword()
   if (!pass) return { ok: false, error: 'Gmail app password not configured.' }
 
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: { user, pass },
   })
 
@@ -67,7 +70,7 @@ async function sendViaGmail(input: SupportEmailInput): Promise<SupportEmailResul
 
 /** Server-side delivery to the support inbox — Gmail first, Resend fallback. */
 export async function sendSupportEmail(input: SupportEmailInput): Promise<SupportEmailResult> {
-  const gmailPass = process.env.GMAIL_APP_PASSWORD?.trim()
+  const gmailPass = await getGmailAppPassword()
   const resendKey = process.env.RESEND_API_KEY?.trim()
 
   if (gmailPass) {
