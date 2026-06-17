@@ -24,10 +24,12 @@ export async function deliverSupportMessage(
   const emailResult = await sendSupportEmail(input)
   if (!emailResult.ok) {
     console.error('[support] saved to database; email not sent:', emailResult.error)
-    return {
-      ok: false,
-      error: 'Your message was saved but could not be delivered. Please try again shortly.',
-    }
+    const detail =
+      emailResult.error === 'Gmail app password not configured.' ||
+      emailResult.error === 'Support email is not configured on the server.'
+        ? 'Support mail is not set up on the server yet.'
+        : 'Your message was saved but could not be emailed to support.'
+    return { ok: false, error: detail }
   }
 
   return { ok: true }

@@ -20,10 +20,10 @@ export function SupportForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, message }),
       })
-      const data = (await response.json()) as { error?: string }
+      const data = (await response.json()) as { ok?: boolean; error?: string }
 
-      if (!response.ok) {
-        setError(data.error ?? 'Something went wrong.')
+      if (!response.ok || data.ok !== true) {
+        setError(data.error ?? 'Something went wrong. Your message was not delivered.')
         return
       }
 
@@ -78,7 +78,15 @@ export function SupportForm() {
         />
       </div>
 
-      {error ? <p className="text-sm text-[#f3d7a4]">{error}</p> : null}
+      {error ? (
+        <div
+          role="alert"
+          className="border border-[#c9a96e]/60 bg-[#221912] p-4"
+        >
+          <p className="text-sm font-medium text-[#f5f2ed]">Message not delivered</p>
+          <p className="mt-2 text-sm text-[#eadfce]">{error}</p>
+        </div>
+      ) : null}
 
       <button
         type="submit"

@@ -9,6 +9,8 @@
     "build": "next build",
     "start": "next start -p 3000",
     "preview": "npm run dev:kill && npm run build && npm run start",
+    "support:check": "npx tsx scripts/check-support-config.ts",
+    "support:setup-gmail": "npx tsx scripts/set-gmail-app-password.ts",
     "import:books": "npx tsx scripts/import-books.ts",
     "import:books:curated": "npx tsx scripts/import-books.ts 15 --curated",
     "cleanup:placeholders": "npx tsx scripts/cleanup-placeholders.ts",
