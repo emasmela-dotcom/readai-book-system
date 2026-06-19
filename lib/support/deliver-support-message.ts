@@ -10,7 +10,7 @@ export type SupportDeliveryResult =
   | { ok: true }
   | { ok: false; error: string }
 
-/** Save to Neon, then send from ReadAI's Gmail — user mail app never opens. */
+/** Save to Neon, then send from ReadAI's server — user mail app never opens. */
 export async function deliverSupportMessage(
   input: SupportDeliveryInput,
 ): Promise<SupportDeliveryResult> {
@@ -26,6 +26,7 @@ export async function deliverSupportMessage(
     console.error('[support] saved to database; email not sent:', emailResult.error)
     const detail =
       emailResult.error === 'Gmail app password not configured.' ||
+      emailResult.error === 'Resend not configured.' ||
       emailResult.error === 'Support email is not configured on the server.'
         ? 'Support mail is not set up on the server yet.'
         : 'Your message was saved but could not be emailed to support.'

@@ -1,6 +1,7 @@
 import { Resend } from 'resend'
 import nodemailer from 'nodemailer'
 import { getGmailAppPassword } from '@/lib/support/gmail-credentials'
+import { getResendApiKey } from '@/lib/support/resend-credentials'
 import { gmailSenderAddress, SUPPORT_INBOX, supportFromAddress } from '@/lib/support/config'
 
 export type SupportEmailInput = {
@@ -21,7 +22,7 @@ function supportBody(userEmail: string, message: string): string {
 }
 
 async function sendViaResend(input: SupportEmailInput): Promise<SupportEmailResult> {
-  const apiKey = process.env.RESEND_API_KEY?.trim()
+  const apiKey = await getResendApiKey()
   if (!apiKey) return { ok: false, error: 'Resend not configured.' }
 
   const resend = new Resend(apiKey)
@@ -68,19 +69,19 @@ async function sendViaGmail(input: SupportEmailInput): Promise<SupportEmailResul
   }
 }
 
-/** Server-side delivery to the support inbox — Gmail first, Resend fallback. */
+/** Server-side delivery — Resend first (no Gmail 2-step), Gmail optional fallback. */
 export async function sendSupportEmail(input: SupportEmailInput): Promise<SupportEmailResult> {
+  const resendKey = await getResendApiKey()
   const gmailPass = await getGmailAppPassword()
-  const resendKey = process.env.RESEND_API_KEY?.trim()
-
-  if (gmailPass) {
-    const gmailResult = await sendViaGmail(input)
-    if (gmailResult.ok) return gmailResult
-    if (!resendKey) return gmailResult
-  }
 
   if (resendKey) {
-    return sendViaResend(input)
+    const resendResult = await sendViaResend(input)
+    if (resendResult.ok) return resendResult
+    if (!gmailPass) return resendResult
+  }
+
+  if (gmailPass) {
+    return sendViaGmail(input)
   }
 
   return { ok: false, error: 'Support email is not configured on the server.' }
