@@ -1,4 +1,4 @@
-import { CURATED_GUTENBERG } from '@/lib/gutenberg-ingest'
+import { CURATED_CLASSICS } from '@/lib/curated-classics'
 import { normalisePhrase } from '@/lib/book-search'
 import { intentLabel, type ClubSearchIntent, type ParsedClubSearch } from '@/lib/club-search-intent'
 
@@ -32,9 +32,9 @@ function bookLabel(book: ClubGuideBook): string {
   return book.author ? `${book.title} by ${book.author}` : book.title
 }
 
-function findCurated(title: string): (typeof CURATED_GUTENBERG)[number] | null {
+function findCurated(title: string): (typeof CURATED_CLASSICS)[number] | null {
   const norm = normalisePhrase(title)
-  for (const entry of CURATED_GUTENBERG) {
+  for (const entry of CURATED_CLASSICS) {
     const entryNorm = normalisePhrase(entry.title)
     if (entryNorm === norm || entryNorm.includes(norm) || norm.includes(entryNorm.split(' ')[0] ?? '')) {
       return entry
@@ -50,7 +50,7 @@ function similarFromCurated(title: string, limit = 5): { title: string; author: 
   }
 
   const sourceSubjects = new Set(source.subjects.map((s) => s.toLowerCase()))
-  const scored = CURATED_GUTENBERG.map((entry) => {
+  const scored = CURATED_CLASSICS.map((entry) => {
     if (entry.id === source.id) return { entry, score: -1 }
     const overlap = entry.subjects.filter((s) =>
       sourceSubjects.has(s.toLowerCase()) || [...sourceSubjects].some((ss) => s.toLowerCase().includes(ss.split(' ')[0] ?? '')),

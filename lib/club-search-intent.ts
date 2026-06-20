@@ -72,13 +72,22 @@ const CHARACTER_BOOK_HINTS: Record<string, string> = {
 
 const INTENT_PATTERNS: { intent: ClubSearchIntent; pattern: RegExp; subjectGroup?: number }[] = [
   { intent: 'club_picks', pattern: /^best book club books?$/i },
+  { intent: 'discussion', pattern: /^(.+?) discussion questions$/i, subjectGroup: 1 },
+  { intent: 'themes', pattern: /^(.+?) themes?$/i, subjectGroup: 1 },
+  { intent: 'summary', pattern: /^(.+?) summary$/i, subjectGroup: 1 },
+  { intent: 'summary', pattern: /what is (.+?) about$/i, subjectGroup: 1 },
+  { intent: 'ending', pattern: /^(.+?) ending$/i, subjectGroup: 1 },
+  { intent: 'symbols', pattern: /^symbols in (.+)/i, subjectGroup: 1 },
+  { intent: 'quotes', pattern: /^(.+?) quotes$/i, subjectGroup: 1 },
+  { intent: 'author', pattern: /^who wrote (.+)/i, subjectGroup: 1 },
+  { intent: 'author_bio', pattern: /what inspired (.+?) to write (.+)/i, subjectGroup: 2 },
   { intent: 'discussion', pattern: /discussion questions (?:for|about) (.+)/i, subjectGroup: 1 },
   { intent: 'discussion', pattern: /what questions should a book club ask about (.+)/i, subjectGroup: 1 },
   { intent: 'discussion', pattern: /questions (?:for|about) (.+)/i, subjectGroup: 1 },
   { intent: 'themes', pattern: /themes? in (.+)/i, subjectGroup: 1 },
   { intent: 'themes', pattern: /deepest theme in (.+)/i, subjectGroup: 1 },
   { intent: 'themes', pattern: /hidden symbolism in (.+)/i, subjectGroup: 1 },
-  { intent: 'theme_topic', pattern: /^(grief|friendship|identity|morality|power and control) in (.+)/i },
+  { intent: 'theme_topic', pattern: /^(grief|friendship|identity|morality|power and control|love|revenge|justice|freedom) in (.+)/i },
   { intent: 'summary', pattern: /summary of (.+)/i, subjectGroup: 1 },
   { intent: 'summary', pattern: /explain (.+) like i(?:'m| am) \d+/i, subjectGroup: 1 },
   { intent: 'characters', pattern: /main characters in (.+)/i, subjectGroup: 1 },
@@ -131,17 +140,46 @@ const SEARCH_ALIASES: Record<string, string> = {
   'great gatsby': 'The Great Gatsby',
   odyssey: 'The Odyssey',
   iliad: 'The Iliad',
+  sherlock: 'The Adventures of Sherlock Holmes',
   'sherlock holmes': 'The Adventures of Sherlock Holmes',
   holmes: 'The Adventures of Sherlock Holmes',
   frankenstein: 'Frankenstein',
   dracula: 'Dracula',
   'moby dick': 'Moby Dick',
+  'the book with the whale': 'Moby Dick',
+  whale: 'Moby Dick',
   'pride and prejudice': 'Pride and Prejudice',
+  'pride and prejudce': 'Pride and Prejudice',
   'jane eyre': 'Jane Eyre',
   'little women': 'Little Women',
   'war and peace': 'War and Peace',
   'alice in wonderland': 'Alice in Wonderland',
   'treasure island': 'Treasure Island',
+  'bleak house': 'Bleak House',
+  middlemarch: 'Middlemarch',
+  metamorphosis: 'Metamorphosis',
+  kafka: 'Metamorphosis',
+  'don quixote': 'Don Quixote',
+  'anna karenina': 'Anna Karenina',
+  'yellow wallpaper': 'The Yellow Wallpaper',
+  'the yellow wallpaper': 'The Yellow Wallpaper',
+  'sense and sensibility': 'Sense and Sensibility',
+  'heart of darkness': 'Heart of Darkness',
+  'wuthering heights': 'Wuthering Heights',
+  'northanger abbey': 'Northanger Abbey',
+  'huckleberry finn': 'Adventures of Huckleberry Finn',
+  'dorian gray': 'The Picture of Dorian Gray',
+  'picture of dorian gray': 'The Picture of Dorian Gray',
+  'crawdads sing': 'Where the Crawdads Sing',
+  'where the crawdads sing': 'Where the Crawdads Sing',
+  tolstoy: 'War and Peace',
+  bronte: 'Jane Eyre',
+  austen: 'Pride and Prejudice',
+  dickens: 'Great Expectations',
+}
+
+export function isClubSearchIntent(intent: ClubSearchIntent): boolean {
+  return intent !== 'book_lookup'
 }
 
 function resolveCharacterBook(subject: string): string {
@@ -211,6 +249,17 @@ export function parseClubSearchIntent(raw: string): ParsedClubSearch {
       raw: trimmed,
       intent: entry.intent,
       subject,
+      secondarySubject: null,
+      themeTopic: null,
+    }
+  }
+
+  const aliasMatch = SEARCH_ALIASES[normalisePhrase(trimmed)]
+  if (aliasMatch) {
+    return {
+      raw: trimmed,
+      intent: 'summary',
+      subject: aliasMatch,
       secondarySubject: null,
       themeTopic: null,
     }

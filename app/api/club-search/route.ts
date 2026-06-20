@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server'
 import { runSourceSearch } from '@/lib/club-search'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 30
 
 export async function GET(request: NextRequest) {
   try {

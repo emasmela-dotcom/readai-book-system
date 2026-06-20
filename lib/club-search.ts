@@ -1,7 +1,7 @@
 import { buildReadableSourceLinks, resolveBookSourceHref, type BookSourceLink } from '@/lib/book-sources'
 import { normalisePhrase, parseTitleAuthorQuery, tokeniseSearch } from '@/lib/book-search'
 import { buildClubSearchGuide, type ClubSearchGuide } from '@/lib/club-search-guide'
-import { parseClubSearchIntent, resolveSearchSubject } from '@/lib/club-search-intent'
+import { parseClubSearchIntent, resolveSearchSubject, isClubSearchIntent } from '@/lib/club-search-intent'
 import { sql } from '@/lib/db'
 import {
   pickPlainTextUrl,
@@ -102,12 +102,12 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
   ])
 }
 
-async function fetchGutendexSearchQuick(term: string): Promise<{ results: GutendexBook[] }> {
+async function fetchGutendexSearchQuick(term: string, timeoutMs = 10_000): Promise<{ results: GutendexBook[] }> {
   const params = new URLSearchParams({ search: term.trim(), languages: 'en' })
   try {
     const res = await fetch(`https://gutendex.com/books/?${params.toString()}`, {
       cache: 'no-store',
-      signal: AbortSignal.timeout(10_000),
+      signal: AbortSignal.timeout(timeoutMs),
     })
     if (!res.ok) return { results: [] }
     const data = (await res.json()) as { results?: GutendexBook[] }
@@ -125,6 +125,7 @@ async function resolveGutenbergReadableMatch(
   query: string,
   titlePart: string,
   authorPart: string,
+  timeoutMs = 10_000,
 ): Promise<SourceSearchMatch | null> {
   const terms = [
     ...new Set(
@@ -132,7 +133,7 @@ async function resolveGutenbergReadableMatch(
     ),
   ]
 
-  const catalogs = await Promise.all(terms.map((term) => fetchGutendexSearchQuick(term)))
+  const catalogs = await Promise.all(terms.map((term) => fetchGutendexSearchQuick(term, timeoutMs)))
 
   let best: { book: GutendexBook; score: number } | null = null
 
@@ -281,17 +282,113 @@ async function lookupCatalogHint(query: string, titlePart: string): Promise<Cata
 export async function runSourceSearch(raw: string): Promise<SourceSearchResult> {
   const query = raw.trim()
   const parsed = parseClubSearchIntent(query)
+
+  if (parsed.intent === 'club_picks') {
+    return {
+      query,
+      match: null,
+      sources: [],
+      film: null,
+      unavailableReason: null,
+      unavailableNote: null,
+      catalogHint: null,
+      clubGuide: buildClubSearchGuide(parsed, null),
+    }
+  }
+
+  const clubIntent = isClubSearchIntent(parsed.intent)
   const searchTerm = resolveSearchSubject(parsed.subject.trim() || query)
   const { titlePart, authorPart } = parseTitleAuthorQuery(searchTerm)
+  const lookupTimeoutMs = clubIntent ? 4_000 : 10_000
 
-  const knownFilm = matchKnownFilm(searchTerm) ?? matchKnownFilm(titlePart)
-  const featuredFilm = knownFilm
-    ? FEATURED_FILMS.find((entry) => entry.title === knownFilm.title)
-    : undefined
+  let match: SourceSearchMatch | null = null
+  let film: SourceSearchFilmMatch | null = null
+  let catalogHint: CatalogHint | null = null
 
-  const gutenbergMatch = await resolveGutenbergReadableMatch(searchTerm, titlePart, authorPart)
-  const match =
-    gutenbergMatch ?? (await withTimeout(resolveDbReadableMatch(searchTerm, titlePart), 4_000))
+  try {
+    const knownFilm = !clubIntent ? matchKnownFilm(searchTerm) ?? matchKnownFilm(titlePart) : null
+    const featuredFilm = knownFilm
+      ? FEATURED_FILMS.find((entry) => entry.title === knownFilm.title)
+      : undefined
+
+    if (clubIntent) {
+      match = await withTimeout(resolveDbReadableMatch(searchTerm, titlePart), 2_500)
+      if (!match) {
+        match = await withTimeout(
+          resolveGutenbergReadableMatch(searchTerm, titlePart, authorPart, 3_500),
+          3_500,
+        )
+      }
+    } else {
+      const gutenbergMatch = await resolveGutenbergReadableMatch(
+        searchTerm,
+        titlePart,
+        authorPart,
+        lookupTimeoutMs,
+      )
+      match =
+        gutenbergMatch ??
+        (await withTimeout(resolveDbReadableMatch(searchTerm, titlePart), lookupTimeoutMs))
+    }
+
+    if (knownFilm) {
+      const filmBookTitle =
+        featuredFilm?.bookDisplayTitle?.trim() ||
+        featuredFilm?.clubBookTitle?.trim() ||
+        `${knownFilm.title} (movie book)`
+      const filmMatch = await withTimeout(
+        resolveGutenbergReadableMatch(filmBookTitle, filmBookTitle, '', lookupTimeoutMs),
+        lookupTimeoutMs,
+      )
+      film = {
+        title: knownFilm.title,
+        bookTitle: filmMatch?.title ?? filmBookTitle,
+        readHref: filmMatch?.readHref ?? null,
+      }
+    }
+
+    if (!match && !clubIntent) {
+      catalogHint = await lookupCatalogHint(searchTerm, titlePart)
+    } else if (!match && clubIntent) {
+      catalogHint = await withTimeout(lookupCatalogHint(searchTerm, titlePart), 2_500)
+    }
+  } catch (error) {
+    console.error('[club-search] lookup error:', error)
+  }
+
+  let unavailableReason: 'copyright' | 'not_found' | null = null
+  let unavailableNote: string | null = null
+
+  if (!match) {
+    if (catalogHint) {
+      unavailableReason = unavailableReasonForHint(catalogHint)
+      unavailableNote = copyrightNoticeForHint(catalogHint)
+    } else if (!clubIntent) {
+      unavailableReason = 'not_found'
+      unavailableNote =
+        'No public-domain full read found on Project Gutenberg. Try a classic title or author name.'
+    }
+  }
+
+  const guideTitle =
+    clubIntent
+      ? searchTerm
+      : match?.title ?? catalogHint?.title ?? searchTerm
+  const guideAuthor = match?.author ?? catalogHint?.author ?? null
+
+  const guideBook = guideTitle
+    ? { title: guideTitle, author: guideAuthor, subjects: [] as string[] }
+    : null
+
+  const clubGuide = (() => {
+    if (!clubIntent || !guideBook) return null
+    try {
+      return buildClubSearchGuide(parsed, guideBook)
+    } catch (error) {
+      console.error('[club-search] guide build error:', error)
+      return null
+    }
+  })()
 
   const sourceBook = match
     ? {
@@ -301,67 +398,17 @@ export async function runSourceSearch(raw: string): Promise<SourceSearchResult> 
       }
     : null
 
-  let film: SourceSearchFilmMatch | null = null
-  if (knownFilm) {
-    const filmBookTitle =
-      featuredFilm?.bookDisplayTitle?.trim() ||
-      featuredFilm?.clubBookTitle?.trim() ||
-      `${knownFilm.title} (movie book)`
-    const filmMatch = await resolveGutenbergReadableMatch(
-      filmBookTitle,
-      filmBookTitle,
-      '',
-    )
-    film = {
-      title: knownFilm.title,
-      bookTitle: filmMatch?.title ?? filmBookTitle,
-      readHref: filmMatch?.readHref ?? null,
-    }
-  }
-
-  let unavailableReason: 'copyright' | 'not_found' | null = null
-  let unavailableNote: string | null = null
-  let catalogHint: CatalogHint | null = null
-
-  if (!match) {
-    catalogHint = await lookupCatalogHint(searchTerm, titlePart)
-    if (catalogHint) {
-      unavailableReason = unavailableReasonForHint(catalogHint)
-      unavailableNote = copyrightNoticeForHint(catalogHint)
-    } else {
-      unavailableReason = 'not_found'
-      unavailableNote =
-        parsed.intent === 'book_lookup'
-          ? 'No public-domain full read found on Project Gutenberg. Try a classic title or author name.'
-          : `No full read found for “${searchTerm}”. Try the exact title (e.g. Pride and Prejudice) or a public-domain classic.`
-    }
-  }
-
-  const guideTitle =
-    parsed.intent !== 'book_lookup'
-      ? searchTerm
-      : match?.title ?? catalogHint?.title ?? searchTerm
-  const guideAuthor =
-    parsed.intent !== 'book_lookup'
-      ? match?.author ?? catalogHint?.author ?? null
-      : match?.author ?? catalogHint?.author ?? null
-
-  const guideBook = guideTitle
-    ? { title: guideTitle, author: guideAuthor, subjects: [] as string[] }
-    : null
-
-  const clubGuide =
-    parsed.intent === 'book_lookup' && !match && !catalogHint && !searchTerm
-      ? null
-      : buildClubSearchGuide(parsed, guideBook)
-
   return {
     query,
     match,
     sources: sourceBook ? buildReadableSourceLinks(sourceBook) : [],
     film,
     unavailableReason,
-    unavailableNote,
+    unavailableNote:
+      clubGuide && !match && clubIntent
+        ? unavailableNote ??
+          `Book club guide for “${guideTitle}”. Search the exact title for a readable edition when available.`
+        : unavailableNote,
     catalogHint,
     clubGuide,
   }
