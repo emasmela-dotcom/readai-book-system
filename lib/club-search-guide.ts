@@ -17,16 +17,40 @@ export type ClubSearchGuide = {
   similarBooks: { title: string; author: string }[]
 }
 
-const CLUB_PICKS = [
-  { title: 'Pride and Prejudice', author: 'Jane Austen' },
-  { title: 'Frankenstein', author: 'Mary Wollstonecraft Shelley' },
-  { title: 'Little Women', author: 'Louisa May Alcott' },
-  { title: 'Jane Eyre', author: 'Charlotte Brontë' },
-  { title: 'The Adventures of Sherlock Holmes', author: 'Arthur Conan Doyle' },
-  { title: 'Dracula', author: 'Bram Stoker' },
-  { title: 'Moby Dick', author: 'Herman Melville' },
-  { title: 'The Count of Monte Cristo', author: 'Alexandre Dumas' },
-]
+const PICKS_PER_DAY = 8
+
+/** UTC date key — same picks for everyone until midnight UTC, then a new set. */
+function dailyDateKey(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function seededIndex(seed: string, max: number, salt: number): number {
+  let h = 0
+  const s = seed + String(salt)
+  for (let i = 0; i < s.length; i++) {
+    h = (h * 31 + s.charCodeAt(i)) | 0
+  }
+  return Math.abs(h) % max
+}
+
+function shortenTitle(title: string): string {
+  return title.replace(/; Or,.*/i, '').trim()
+}
+
+function getDailyClubPicks(count = PICKS_PER_DAY): { title: string; author: string }[] {
+  const pool = CURATED_CLASSICS.map((e) => ({
+    title: shortenTitle(e.title),
+    author: e.author,
+  }))
+  const seed = dailyDateKey()
+  const picked: typeof pool = []
+  const remaining = [...pool]
+  while (picked.length < count && remaining.length > 0) {
+    const idx = seededIndex(seed, remaining.length, picked.length)
+    picked.push(remaining.splice(idx, 1)[0])
+  }
+  return picked
+}
 
 function bookLabel(book: ClubGuideBook): string {
   return book.author ? `${book.title} by ${book.author}` : book.title
@@ -46,7 +70,7 @@ function findCurated(title: string): (typeof CURATED_CLASSICS)[number] | null {
 function similarFromCurated(title: string, limit = 5): { title: string; author: string }[] {
   const source = findCurated(title)
   if (!source) {
-    return CLUB_PICKS.filter((b) => normalisePhrase(b.title) !== normalisePhrase(title)).slice(0, limit)
+    return getDailyClubPicks().filter((b) => normalisePhrase(b.title) !== normalisePhrase(title)).slice(0, limit)
   }
 
   const sourceSubjects = new Set(source.subjects.map((s) => s.toLowerCase()))
@@ -272,7 +296,7 @@ function buildIcebreaker(book: ClubGuideBook): string[] {
 }
 
 function buildClubPicks(): string[] {
-  return CLUB_PICKS.map((book) => `${book.title} — ${book.author}`)
+  return getDailyClubPicks().map((book) => `${book.title} — ${book.author}`)
 }
 
 /** Last resort — never send the user away empty-handed. */
@@ -288,7 +312,7 @@ export function buildFallbackSearchGuide(query: string): ClubSearchGuide {
       'Ask a club question — e.g. discussion questions for Jane Eyre',
     ],
     note: 'Pick a title above and search again for discussion prompts and a full read when available.',
-    similarBooks: CLUB_PICKS,
+    similarBooks: getDailyClubPicks(),
   }
 }
 
@@ -305,7 +329,7 @@ export function buildClubSearchGuide(
       heading: 'Strong public-domain book club picks',
       items: buildClubPicks(),
       note: 'Search any title below to open a full read and more club prompts.',
-      similarBooks: CLUB_PICKS,
+      similarBooks: getDailyClubPicks(),
     }
   }
 
