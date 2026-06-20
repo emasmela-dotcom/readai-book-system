@@ -359,7 +359,7 @@ export default function ReadAIHome() {
                     </div>
                   ) : sourceSearch.unavailableNote ? (
                     <p className="text-sm leading-relaxed text-[#eadfce]">{sourceSearch.unavailableNote}</p>
-                  ) : (
+                  ) : sourceSearch.clubGuide ? null : (
                     <p className="text-sm text-[#eadfce]">
                       No readable public-domain edition found for this search.
                     </p>
