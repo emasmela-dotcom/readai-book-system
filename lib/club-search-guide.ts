@@ -18,10 +18,12 @@ export type ClubSearchGuide = {
 }
 
 const PICKS_PER_DAY = 8
+/** Max titles shared with the previous day's list — keeps rotation feeling fresh. */
+const MAX_OVERLAP_WITH_PREVIOUS = 3
 
-/** UTC date key — same picks for everyone until midnight UTC, then a new set. */
-function dailyDateKey(): string {
-  return new Date().toISOString().slice(0, 10)
+/** UTC midnight boundary — same picks for everyone until the next UTC day. */
+function epochDay(): number {
+  return Math.floor(Date.now() / 86400000)
 }
 
 function seededIndex(seed: string, max: number, salt: number): number {
@@ -37,19 +39,64 @@ function shortenTitle(title: string): string {
   return title.replace(/; Or,.*/i, '').trim()
 }
 
-function getDailyClubPicks(count = PICKS_PER_DAY): { title: string; author: string }[] {
-  const pool = CURATED_CLASSICS.map((e) => ({
+function shufflePool<T extends { title: string }>(pool: T[], seed: string): T[] {
+  const arr = [...pool]
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = seededIndex(seed, i + 1, i)
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
+function picksSignature(picks: { title: string }[]): string {
+  return picks
+    .map((p) => p.title)
+    .sort()
+    .join('|')
+}
+
+function overlapCount(
+  a: { title: string }[],
+  b: { title: string }[],
+): number {
+  const titles = new Set(b.map((p) => p.title))
+  return a.filter((p) => titles.has(p.title)).length
+}
+
+function basePool(): { title: string; author: string }[] {
+  return CURATED_CLASSICS.map((e) => ({
     title: shortenTitle(e.title),
     author: e.author,
   }))
-  const seed = dailyDateKey()
-  const picked: typeof pool = []
-  const remaining = [...pool]
-  while (picked.length < count && remaining.length > 0) {
-    const idx = seededIndex(seed, remaining.length, picked.length)
-    picked.push(remaining.splice(idx, 1)[0])
+}
+
+function pickForDay(day: number, salt: number): { title: string; author: string }[] {
+  const pool = basePool()
+  const week = Math.floor(day / 7)
+  const shuffled = shufflePool(pool, `readai-club-w${week}-d${day}-s${salt}`)
+  return shuffled.slice(0, PICKS_PER_DAY)
+}
+
+function getDailyClubPicks(count = PICKS_PER_DAY): { title: string; author: string }[] {
+  const day = epochDay()
+  const previous = day > 0 ? pickForDay(day - 1, 0) : []
+
+  for (let salt = 0; salt < 32; salt++) {
+    const picked = pickForDay(day, salt).slice(0, count)
+    if (previous.length === 0) return picked
+
+    const sameList = picksSignature(picked) === picksSignature(previous)
+    const overlap = overlapCount(picked, previous)
+    if (!sameList && overlap <= MAX_OVERLAP_WITH_PREVIOUS) return picked
   }
-  return picked
+
+  // Fallback: at least never repeat yesterday's exact list
+  for (let salt = 1; salt < 64; salt++) {
+    const picked = pickForDay(day, salt).slice(0, count)
+    if (picksSignature(picked) !== picksSignature(previous)) return picked
+  }
+
+  return pickForDay(day, day).slice(0, count)
 }
 
 function bookLabel(book: ClubGuideBook): string {
