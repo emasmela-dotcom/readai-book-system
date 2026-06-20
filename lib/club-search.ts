@@ -1,6 +1,6 @@
 import { buildReadableSourceLinks, resolveBookSourceHref, type BookSourceLink } from '@/lib/book-sources'
 import { normalisePhrase, parseTitleAuthorQuery, tokeniseSearch } from '@/lib/book-search'
-import { buildClubSearchGuide, type ClubSearchGuide, buildFallbackSearchGuide } from '@/lib/club-search-guide'
+import { buildClubSearchGuide, buildClubPicksGuide, buildFallbackSearchGuide, type ClubSearchGuide } from '@/lib/club-search-guide'
 import { parseClubSearchIntent, resolveSearchSubject, isClubSearchIntent } from '@/lib/club-search-intent'
 import { sql } from '@/lib/db'
 import {
@@ -292,7 +292,7 @@ export async function runSourceSearch(raw: string): Promise<SourceSearchResult> 
       unavailableReason: null,
       unavailableNote: null,
       catalogHint: null,
-      clubGuide: buildClubSearchGuide(parsed, null),
+      clubGuide: await buildClubPicksGuide(parsed),
     }
   }
 
@@ -394,9 +394,9 @@ export async function runSourceSearch(raw: string): Promise<SourceSearchResult> 
   const finalGuide =
     clubGuide ??
     (clubIntent && guideBook
-      ? buildFallbackSearchGuide(query)
+      ? await buildFallbackSearchGuide(query)
       : !match && !catalogHint
-        ? buildFallbackSearchGuide(query)
+        ? await buildFallbackSearchGuide(query)
         : null)
 
   const sourceBook = match

@@ -1,4 +1,5 @@
 import { CURATED_CLASSICS } from '@/lib/curated-classics'
+import { getDailyClubPicks } from '@/lib/daily-club-picks'
 import { normalisePhrase } from '@/lib/book-search'
 import { intentLabel, type ClubSearchIntent, type ParsedClubSearch } from '@/lib/club-search-intent'
 
@@ -15,88 +16,6 @@ export type ClubSearchGuide = {
   items: string[]
   note: string | null
   similarBooks: { title: string; author: string }[]
-}
-
-const PICKS_PER_DAY = 8
-/** Max titles shared with the previous day's list — keeps rotation feeling fresh. */
-const MAX_OVERLAP_WITH_PREVIOUS = 3
-
-/** UTC midnight boundary — same picks for everyone until the next UTC day. */
-function epochDay(): number {
-  return Math.floor(Date.now() / 86400000)
-}
-
-function seededIndex(seed: string, max: number, salt: number): number {
-  let h = 0
-  const s = seed + String(salt)
-  for (let i = 0; i < s.length; i++) {
-    h = (h * 31 + s.charCodeAt(i)) | 0
-  }
-  return Math.abs(h) % max
-}
-
-function shortenTitle(title: string): string {
-  return title.replace(/; Or,.*/i, '').trim()
-}
-
-function shufflePool<T extends { title: string }>(pool: T[], seed: string): T[] {
-  const arr = [...pool]
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = seededIndex(seed, i + 1, i)
-    ;[arr[i], arr[j]] = [arr[j], arr[i]]
-  }
-  return arr
-}
-
-function picksSignature(picks: { title: string }[]): string {
-  return picks
-    .map((p) => p.title)
-    .sort()
-    .join('|')
-}
-
-function overlapCount(
-  a: { title: string }[],
-  b: { title: string }[],
-): number {
-  const titles = new Set(b.map((p) => p.title))
-  return a.filter((p) => titles.has(p.title)).length
-}
-
-function basePool(): { title: string; author: string }[] {
-  return CURATED_CLASSICS.map((e) => ({
-    title: shortenTitle(e.title),
-    author: e.author,
-  }))
-}
-
-function pickForDay(day: number, salt: number): { title: string; author: string }[] {
-  const pool = basePool()
-  const week = Math.floor(day / 7)
-  const shuffled = shufflePool(pool, `readai-club-w${week}-d${day}-s${salt}`)
-  return shuffled.slice(0, PICKS_PER_DAY)
-}
-
-function getDailyClubPicks(count = PICKS_PER_DAY): { title: string; author: string }[] {
-  const day = epochDay()
-  const previous = day > 0 ? pickForDay(day - 1, 0) : []
-
-  for (let salt = 0; salt < 32; salt++) {
-    const picked = pickForDay(day, salt).slice(0, count)
-    if (previous.length === 0) return picked
-
-    const sameList = picksSignature(picked) === picksSignature(previous)
-    const overlap = overlapCount(picked, previous)
-    if (!sameList && overlap <= MAX_OVERLAP_WITH_PREVIOUS) return picked
-  }
-
-  // Fallback: at least never repeat yesterday's exact list
-  for (let salt = 1; salt < 64; salt++) {
-    const picked = pickForDay(day, salt).slice(0, count)
-    if (picksSignature(picked) !== picksSignature(previous)) return picked
-  }
-
-  return pickForDay(day, day).slice(0, count)
 }
 
 function bookLabel(book: ClubGuideBook): string {
@@ -117,7 +36,9 @@ function findCurated(title: string): (typeof CURATED_CLASSICS)[number] | null {
 function similarFromCurated(title: string, limit = 5): { title: string; author: string }[] {
   const source = findCurated(title)
   if (!source) {
-    return getDailyClubPicks().filter((b) => normalisePhrase(b.title) !== normalisePhrase(title)).slice(0, limit)
+    return CURATED_CLASSICS.map((entry) => ({ title: entry.title, author: entry.author }))
+      .filter((b) => normalisePhrase(b.title) !== normalisePhrase(title))
+      .slice(0, limit)
   }
 
   const sourceSubjects = new Set(source.subjects.map((s) => s.toLowerCase()))
@@ -342,24 +263,33 @@ function buildIcebreaker(book: ClubGuideBook): string[] {
   ]
 }
 
-function buildClubPicks(): string[] {
-  return getDailyClubPicks().map((book) => `${book.title} — ${book.author}`)
+export async function buildClubPicksGuide(parsed: ParsedClubSearch): Promise<ClubSearchGuide> {
+  const picks = await getDailyClubPicks()
+  return {
+    intent: 'club_picks',
+    intentLabel: intentLabel('club_picks'),
+    heading: 'Strong public-domain book club picks',
+    items: picks.map((book) => `${book.title} — ${book.author}`),
+    note: 'Search any title below to open a full read and more club prompts.',
+    similarBooks: picks,
+  }
 }
 
 /** Last resort — never send the user away empty-handed. */
-export function buildFallbackSearchGuide(query: string): ClubSearchGuide {
+export async function buildFallbackSearchGuide(query: string): Promise<ClubSearchGuide> {
   const trimmed = query.trim().slice(0, 80)
+  const picks = await getDailyClubPicks()
   return {
     intent: 'club_picks',
     intentLabel: 'Start here',
     heading: trimmed ? `Try these for “${trimmed}”` : 'Try these book club picks',
     items: [
-      ...buildClubPicks(),
+      ...picks.map((book) => `${book.title} — ${book.author}`),
       'Search an exact title — e.g. Pride and Prejudice, Frankenstein, Dracula',
       'Ask a club question — e.g. discussion questions for Jane Eyre',
     ],
     note: 'Pick a title above and search again for discussion prompts and a full read when available.',
-    similarBooks: getDailyClubPicks(),
+    similarBooks: picks,
   }
 }
 
@@ -370,14 +300,7 @@ export function buildClubSearchGuide(
   const intent = parsed.intent
 
   if (intent === 'club_picks') {
-    return {
-      intent,
-      intentLabel: intentLabel(intent),
-      heading: 'Strong public-domain book club picks',
-      items: buildClubPicks(),
-      note: 'Search any title below to open a full read and more club prompts.',
-      similarBooks: getDailyClubPicks(),
-    }
+    throw new Error('Use buildClubPicksGuide() for club_picks intent')
   }
 
   if (!book?.title?.trim()) return null
