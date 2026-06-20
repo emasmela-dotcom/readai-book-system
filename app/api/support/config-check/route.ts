@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getDbHost, getDbName } from '@/lib/db'
-import { getResendApiKey, getResendApiKeys } from '@/lib/support/resend-credentials'
+import { getResendApiKeys } from '@/lib/support/resend-credentials'
+
+export const dynamic = 'force-dynamic'
 
 /** Safe runtime check — no secrets returned. */
 export async function GET() {
