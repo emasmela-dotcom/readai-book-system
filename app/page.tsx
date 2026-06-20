@@ -252,9 +252,14 @@ export default function ReadAIHome() {
                         Readable book for{' '}
                         <span className="text-[#f5f2ed]">&ldquo;{activeSearch}&rdquo;</span>
                       </>
+                    ) : sourceSearch.clubGuide ? (
+                      <>
+                        Book club results for{' '}
+                        <span className="text-[#f5f2ed]">&ldquo;{activeSearch}&rdquo;</span>
+                      </>
                     ) : (
                       <>
-                        {sourceSearch.clubGuide ? 'Book club guide for' : 'No readable book for'}{' '}
+                        No readable book for{' '}
                         <span className="text-[#f5f2ed]">&ldquo;{activeSearch}&rdquo;</span>
                       </>
                     )}

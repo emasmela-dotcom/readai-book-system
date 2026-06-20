@@ -275,6 +275,23 @@ function buildClubPicks(): string[] {
   return CLUB_PICKS.map((book) => `${book.title} — ${book.author}`)
 }
 
+/** Last resort — never send the user away empty-handed. */
+export function buildFallbackSearchGuide(query: string): ClubSearchGuide {
+  const trimmed = query.trim().slice(0, 80)
+  return {
+    intent: 'club_picks',
+    intentLabel: 'Start here',
+    heading: trimmed ? `Try these for “${trimmed}”` : 'Try these book club picks',
+    items: [
+      ...buildClubPicks(),
+      'Search an exact title — e.g. Pride and Prejudice, Frankenstein, Dracula',
+      'Ask a club question — e.g. discussion questions for Jane Eyre',
+    ],
+    note: 'Pick a title above and search again for discussion prompts and a full read when available.',
+    similarBooks: CLUB_PICKS,
+  }
+}
+
 export function buildClubSearchGuide(
   parsed: ParsedClubSearch,
   book: ClubGuideBook | null,

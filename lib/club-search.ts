@@ -1,6 +1,6 @@
 import { buildReadableSourceLinks, resolveBookSourceHref, type BookSourceLink } from '@/lib/book-sources'
 import { normalisePhrase, parseTitleAuthorQuery, tokeniseSearch } from '@/lib/book-search'
-import { buildClubSearchGuide, type ClubSearchGuide } from '@/lib/club-search-guide'
+import { buildClubSearchGuide, type ClubSearchGuide, buildFallbackSearchGuide } from '@/lib/club-search-guide'
 import { parseClubSearchIntent, resolveSearchSubject, isClubSearchIntent } from '@/lib/club-search-intent'
 import { sql } from '@/lib/db'
 import {
@@ -381,14 +381,23 @@ export async function runSourceSearch(raw: string): Promise<SourceSearchResult> 
     : null
 
   const clubGuide = (() => {
-    if (!clubIntent || !guideBook) return null
-    try {
-      return buildClubSearchGuide(parsed, guideBook)
-    } catch (error) {
-      console.error('[club-search] guide build error:', error)
-      return null
+    if (clubIntent && guideBook) {
+      try {
+        return buildClubSearchGuide(parsed, guideBook)
+      } catch (error) {
+        console.error('[club-search] guide build error:', error)
+      }
     }
+    return null
   })()
+
+  const finalGuide =
+    clubGuide ??
+    (clubIntent && guideBook
+      ? buildFallbackSearchGuide(query)
+      : !match && !catalogHint
+        ? buildFallbackSearchGuide(query)
+        : null)
 
   const sourceBook = match
     ? {
@@ -405,12 +414,14 @@ export async function runSourceSearch(raw: string): Promise<SourceSearchResult> 
     film,
     unavailableReason,
     unavailableNote:
-      clubGuide && !match && clubIntent
+      finalGuide && !match
         ? unavailableNote ??
-          `Book club guide for “${guideTitle}”. Search the exact title for a readable edition when available.`
+          (clubIntent
+            ? `Book club guide for “${guideTitle}”. Search the exact title for a readable edition when available.`
+            : null)
         : unavailableNote,
     catalogHint,
-    clubGuide,
+    clubGuide: finalGuide,
   }
 }
 

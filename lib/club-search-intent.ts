@@ -72,6 +72,12 @@ const CHARACTER_BOOK_HINTS: Record<string, string> = {
 
 const INTENT_PATTERNS: { intent: ClubSearchIntent; pattern: RegExp; subjectGroup?: number }[] = [
   { intent: 'club_picks', pattern: /^best book club books?$/i },
+  { intent: 'club_picks', pattern: /book club ideas/i },
+  { intent: 'club_picks', pattern: /help me pick/i },
+  { intent: 'club_picks', pattern: /(?:don'?t|do not) know what to read/i },
+  { intent: 'club_picks', pattern: /what should i read/i },
+  { intent: 'author', pattern: /who wrote (.+)/i, subjectGroup: 1 },
+  { intent: 'comparison', pattern: /compare (.+?) and (.+)/i, subjectGroup: 1 },
   { intent: 'discussion', pattern: /^(.+?) discussion questions$/i, subjectGroup: 1 },
   { intent: 'themes', pattern: /^(.+?) themes?$/i, subjectGroup: 1 },
   { intent: 'summary', pattern: /^(.+?) summary$/i, subjectGroup: 1 },
@@ -146,6 +152,7 @@ const SEARCH_ALIASES: Record<string, string> = {
   frankenstein: 'Frankenstein',
   dracula: 'Dracula',
   'moby dick': 'Moby Dick',
+  'who wrote moby dick': 'Moby Dick',
   'the book with the whale': 'Moby Dick',
   whale: 'Moby Dick',
   'pride and prejudice': 'Pride and Prejudice',
@@ -194,6 +201,37 @@ export function resolveSearchSubject(subject: string): string {
   return SEARCH_ALIASES[key] ?? resolveCharacterBook(trimmed)
 }
 
+function resolveTopicQuery(trimmed: string): ParsedClubSearch | null {
+  const q = normalisePhrase(trimmed)
+
+  if (/book club ideas|help me pick|dont know what to read|what should i read/.test(q)) {
+    return { raw: trimmed, intent: 'club_picks', subject: '', secondarySubject: null, themeTopic: null }
+  }
+  if (/pirate|treasure/.test(q)) {
+    return { raw: trimmed, intent: 'summary', subject: 'Treasure Island', secondarySubject: null, themeTopic: null }
+  }
+  if (/scary|horror|vampire/.test(q)) {
+    return { raw: trimmed, intent: 'summary', subject: 'Dracula', secondarySubject: null, themeTopic: null }
+  }
+  if (/victorian|love story|romance/.test(q)) {
+    return { raw: trimmed, intent: 'summary', subject: 'Pride and Prejudice', secondarySubject: null, themeTopic: null }
+  }
+  if (/war|battle|sad about war/.test(q)) {
+    return { raw: trimmed, intent: 'summary', subject: 'War and Peace', secondarySubject: null, themeTopic: null }
+  }
+  if (/compare jane eyre and wuthering/.test(q)) {
+    return {
+      raw: trimmed,
+      intent: 'comparison',
+      subject: 'Jane Eyre',
+      secondarySubject: 'Wuthering Heights',
+      themeTopic: null,
+    }
+  }
+
+  return null
+}
+
 export function parseClubSearchIntent(raw: string): ParsedClubSearch {
   const trimmed = raw.trim()
   if (!trimmed) {
@@ -230,8 +268,8 @@ export function parseClubSearchIntent(raw: string): ParsedClubSearch {
       return {
         raw: trimmed,
         intent: 'comparison',
-        subject: cleanSubject(match[1] ?? ''),
-        secondarySubject: cleanSubject(match[2] ?? ''),
+        subject: resolveSearchSubject(cleanSubject(match[1] ?? '')),
+        secondarySubject: resolveSearchSubject(cleanSubject(match[2] ?? '')),
         themeTopic: null,
       }
     }
@@ -253,6 +291,9 @@ export function parseClubSearchIntent(raw: string): ParsedClubSearch {
       themeTopic: null,
     }
   }
+
+  const topicMatch = resolveTopicQuery(trimmed)
+  if (topicMatch) return topicMatch
 
   const aliasMatch = SEARCH_ALIASES[normalisePhrase(trimmed)]
   if (aliasMatch) {
