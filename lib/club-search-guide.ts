@@ -270,7 +270,7 @@ export async function buildClubPicksGuide(parsed: ParsedClubSearch): Promise<Clu
     intentLabel: intentLabel('club_picks'),
     heading: 'Strong public-domain book club picks',
     items: picks.map((book) => `${book.title} — ${book.author}`),
-    note: 'Search any title below to open a full read and more club prompts.',
+    note: 'Fresh daily picks from Project Gutenberg, Open Library, Internet Archive, and your club library. Search any title for a full read and club prompts.',
     similarBooks: picks,
   }
 }
