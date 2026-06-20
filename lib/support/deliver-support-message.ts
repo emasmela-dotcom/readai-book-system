@@ -1,3 +1,4 @@
+import { ensureResendKeyInNeon } from '@/lib/support/resend-credentials'
 import { saveSupportMessage } from '@/lib/support/save-support-message'
 import { sendSupportEmail } from '@/lib/support/send-support-email'
 
@@ -14,6 +15,12 @@ export type SupportDeliveryResult =
 export async function deliverSupportMessage(
   input: SupportDeliveryInput,
 ): Promise<SupportDeliveryResult> {
+  try {
+    await ensureResendKeyInNeon()
+  } catch (error) {
+    console.error('[support] could not sync resend key to Neon:', error)
+  }
+
   const emailResult = await sendSupportEmail(input)
 
   let savedToNeon = false

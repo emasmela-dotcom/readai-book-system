@@ -2,6 +2,12 @@ import { sql } from '@/lib/db'
 
 let cachedApiKey: string | null | undefined
 
+function normalizeResendKey(raw: string | undefined): string | null {
+  const value = raw?.trim().replace(/^["']|["']$/g, '')
+  if (!value || !value.startsWith('re_')) return null
+  return value
+}
+
 async function ensureSettingsTable(): Promise<void> {
   await sql`
     CREATE TABLE IF NOT EXISTS app_settings (
@@ -12,11 +18,7 @@ async function ensureSettingsTable(): Promise<void> {
   `
 }
 
-/** Resend API key from env or Neon app_settings. */
-export async function getResendApiKey(): Promise<string | null> {
-  const fromEnv = process.env.RESEND_API_KEY?.trim()
-  if (fromEnv) return fromEnv
-
+async function loadNeonResendKey(): Promise<string | null> {
   if (cachedApiKey !== undefined) return cachedApiKey
 
   try {
@@ -24,14 +26,43 @@ export async function getResendApiKey(): Promise<string | null> {
     const rows = await sql`
       SELECT value FROM app_settings WHERE key = 'resend_api_key' LIMIT 1
     `
-    const value = (rows[0] as { value: string } | undefined)?.value?.trim()
-    cachedApiKey = value || null
+    const value = normalizeResendKey((rows[0] as { value: string } | undefined)?.value)
+    cachedApiKey = value
   } catch (error) {
     console.error('[support] could not load resend_api_key from Neon:', error)
     cachedApiKey = null
   }
 
   return cachedApiKey
+}
+
+/** All Resend keys to try (env first, then Neon). Skips invalid env values. */
+export async function getResendApiKeys(): Promise<string[]> {
+  const keys: string[] = []
+  const fromEnv = normalizeResendKey(process.env.RESEND_API_KEY)
+  if (fromEnv) keys.push(fromEnv)
+
+  const fromNeon = await loadNeonResendKey()
+  if (fromNeon && !keys.includes(fromNeon)) keys.push(fromNeon)
+
+  return keys
+}
+
+/** Resend API key from env or Neon app_settings. */
+export async function getResendApiKey(): Promise<string | null> {
+  const keys = await getResendApiKeys()
+  return keys[0] ?? null
+}
+
+/** Persist env Resend key into Neon so production works with DATABASE_URL only. */
+export async function ensureResendKeyInNeon(): Promise<void> {
+  const fromEnv = normalizeResendKey(process.env.RESEND_API_KEY)
+  if (!fromEnv) return
+
+  const fromNeon = await loadNeonResendKey()
+  if (fromNeon === fromEnv) return
+
+  await saveResendApiKey(fromEnv)
 }
 
 export async function saveResendApiKey(apiKey: string): Promise<void> {

@@ -12,6 +12,7 @@
     "support:check": "npx tsx scripts/check-support-config.ts",
     "support:setup-gmail": "npx tsx scripts/set-gmail-app-password.ts",
     "support:setup-resend": "npx tsx scripts/set-resend-api-key.ts",
+    "support:sync-resend": "npx tsx scripts/sync-resend-from-env.ts",
     "vercel:push-env": "node scripts/push-vercel-env.mjs",
     "vercel:env-file": "node scripts/write-vercel-env-setup.mjs",
     "import:books": "npx tsx scripts/import-books.ts",

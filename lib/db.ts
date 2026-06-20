@@ -7,9 +7,9 @@ let sqlClientUrl: string | null = null
 
 /** Prefer DATABASE_URL from .env when present so local `next start` matches scripts/repair. */
 export function getDatabaseUrl(): string {
-  const fromEnv = process.env.DATABASE_URL?.trim()
-  if (fromEnv) {
-    return fromEnv.replace(/^["']|["']$/g, '')
+  for (const key of ['DATABASE_URL', 'POSTGRES_URL', 'POSTGRES_PRISMA_URL', 'NEON_DATABASE_URL']) {
+    const fromEnv = process.env[key]?.trim().replace(/^["']|["']$/g, '')
+    if (fromEnv) return fromEnv
   }
 
   const envPath = resolve(process.cwd(), '.env')
@@ -25,7 +25,7 @@ export function getDatabaseUrl(): string {
     }
   }
 
-  const url = process.env.DATABASE_URL
+  const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? process.env.NEON_DATABASE_URL
   if (!url) {
     throw new Error('DATABASE_URL is not set')
   }
@@ -35,6 +35,15 @@ export function getDatabaseUrl(): string {
 export function getDbHost(): string {
   const match = getDatabaseUrl().match(/@([^/]+)/)
   return match?.[1] ?? 'unknown'
+}
+
+export function getDbName(): string {
+  try {
+    const pathname = new URL(getDatabaseUrl().replace(/^postgresql:/, 'http:')).pathname
+    return pathname.replace(/^\//, '') || 'unknown'
+  } catch {
+    return 'unknown'
+  }
 }
 
 export function getSql(): NeonQueryFunction<false, false> {
