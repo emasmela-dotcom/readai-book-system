@@ -7,6 +7,7 @@ import { HomeBrowseHub } from '@/components/home-browse-hub'
 import { ConnectedSourcesBlock } from '@/components/connected-sources-block'
 import { MagazineSourcesBlock } from '@/components/magazine-sources-block'
 import { GenreDirectoryGrid } from '@/components/genre-directory-grid'
+import { AuthNavLinks } from '@/components/auth-nav-links'
 import { sourceAccessLabel } from '@/lib/book-sources'
 import { FEATURED_FILMS } from '@/lib/movie-sources'
 
@@ -42,6 +43,14 @@ interface SourceSearchState {
   unavailableReason: 'copyright' | 'not_found' | null
   unavailableNote: string | null
   catalogHint: { title: string; author: string | null; firstPublishYear: number | null; verifyHref: string } | null
+  clubGuide: {
+    intent: string
+    intentLabel: string
+    heading: string
+    items: string[]
+    note: string | null
+    similarBooks: { title: string; author: string }[]
+  } | null
 }
 
 interface GenreListingSection {
@@ -129,6 +138,7 @@ export default function ReadAIHome() {
         unavailableReason: data.unavailableReason ?? null,
         unavailableNote: data.unavailableNote ?? null,
         catalogHint: data.catalogHint ?? null,
+        clubGuide: data.clubGuide ?? null,
       })
     } catch (error) {
       console.error('Search error:', error)
@@ -172,12 +182,7 @@ export default function ReadAIHome() {
             <Link href="/sources" className="hover:text-[#c9a96e]">
               All sources
             </Link>
-            <Link href="/sign-up" className="hover:text-[#c9a96e]">
-              Start free trial
-            </Link>
-            <Link href="/sign-in" className="hover:text-[#c9a96e]">
-              Sign in
-            </Link>
+            <AuthNavLinks />
           </nav>
         </div>
       </header>
@@ -189,7 +194,7 @@ export default function ReadAIHome() {
             className="flex flex-col gap-3 md:flex-row md:items-center"
           >
             <label htmlFor="source-search" className="text-[11px] uppercase tracking-[0.25em] text-[#c9a96e]">
-              Search readable books
+              Book club search
             </label>
             <div className="flex flex-1 flex-col gap-3 sm:flex-row">
               <input
@@ -197,7 +202,7 @@ export default function ReadAIHome() {
                 type="search"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Public-domain title or author (e.g. Frankenstein, Jane Austen)"
+                placeholder="Title, author, or ask: discussion questions for Pride and Prejudice"
                 className="w-full border border-white/15 bg-[#171311] px-4 py-3 text-sm text-[#f5f2ed] outline-none placeholder:text-[#e8e4df]/45 focus:border-[#c9a96e]"
               />
               <button
@@ -215,6 +220,32 @@ export default function ReadAIHome() {
                 <p className="text-sm text-[#f3d7a4]">{searchError}</p>
               ) : sourceSearch ? (
                 <div className="space-y-6">
+                  {sourceSearch.clubGuide ? (
+                    <div className="border border-[#c9a96e]/35 bg-[#1a1410] p-4">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-[#c9a96e]">
+                        {sourceSearch.clubGuide.intentLabel}
+                      </p>
+                      <h3 className="mt-2 font-serif text-xl text-[#f5f2ed]">
+                        {sourceSearch.clubGuide.heading}
+                      </h3>
+                      <ul className="mt-4 space-y-3">
+                        {sourceSearch.clubGuide.items.map((item) => (
+                          <li
+                            key={item}
+                            className="border-l-2 border-[#c9a96e]/50 pl-3 text-sm leading-relaxed text-[#eadfce]"
+                          >
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                      {sourceSearch.clubGuide.note ? (
+                        <p className="mt-4 text-sm leading-relaxed text-[#e8e4df]/75">
+                          {sourceSearch.clubGuide.note}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
                   <p className="text-sm text-[#e8e4df]/75">
                     {sourceSearch.match ? (
                       <>
@@ -223,7 +254,7 @@ export default function ReadAIHome() {
                       </>
                     ) : (
                       <>
-                        No readable book for{' '}
+                        {sourceSearch.clubGuide ? 'Book club guide for' : 'No readable book for'}{' '}
                         <span className="text-[#f5f2ed]">&ldquo;{activeSearch}&rdquo;</span>
                       </>
                     )}
@@ -464,11 +495,6 @@ export default function ReadAIHome() {
           </p>
         </div>
       </section>
-
-      <footer className="border-t border-white/10 px-5 py-6 text-center md:px-8">
-        <p className="font-serif text-lg text-[#e8e4df]/70">ReadAI Book Club</p>
-        <p className="mt-1 text-xs text-[#e8e4df]/70">Your private reading club</p>
-      </footer>
     </div>
   )
 }

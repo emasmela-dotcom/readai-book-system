@@ -1,5 +1,7 @@
 import { buildReadableSourceLinks, resolveBookSourceHref, type BookSourceLink } from '@/lib/book-sources'
 import { normalisePhrase, parseTitleAuthorQuery, tokeniseSearch } from '@/lib/book-search'
+import { buildClubSearchGuide, type ClubSearchGuide } from '@/lib/club-search-guide'
+import { parseClubSearchIntent, resolveSearchSubject } from '@/lib/club-search-intent'
 import { sql } from '@/lib/db'
 import {
   pickPlainTextUrl,
@@ -38,6 +40,8 @@ export type SourceSearchResult = {
     firstPublishYear: number | null
     verifyHref: string
   } | null
+  /** Book-club prompts tailored to the search intent (discussion, themes, etc.). */
+  clubGuide: ClubSearchGuide | null
 }
 
 function titleMatchesQuery(query: string, titlePart: string, bookTitle: string): boolean {
@@ -273,19 +277,21 @@ async function lookupCatalogHint(query: string, titlePart: string): Promise<Cata
   return result ?? null
 }
 
-/** Homepage search — only titles with a full readable public-domain edition. */
+/** Homepage search — readable books plus book-club guide for natural-language queries. */
 export async function runSourceSearch(raw: string): Promise<SourceSearchResult> {
   const query = raw.trim()
-  const { titlePart, authorPart } = parseTitleAuthorQuery(query)
+  const parsed = parseClubSearchIntent(query)
+  const searchTerm = resolveSearchSubject(parsed.subject.trim() || query)
+  const { titlePart, authorPart } = parseTitleAuthorQuery(searchTerm)
 
-  const knownFilm = matchKnownFilm(query) ?? matchKnownFilm(titlePart)
+  const knownFilm = matchKnownFilm(searchTerm) ?? matchKnownFilm(titlePart)
   const featuredFilm = knownFilm
     ? FEATURED_FILMS.find((entry) => entry.title === knownFilm.title)
     : undefined
 
-  const gutenbergMatch = await resolveGutenbergReadableMatch(query, titlePart, authorPart)
+  const gutenbergMatch = await resolveGutenbergReadableMatch(searchTerm, titlePart, authorPart)
   const match =
-    gutenbergMatch ?? (await withTimeout(resolveDbReadableMatch(query, titlePart), 4_000))
+    gutenbergMatch ?? (await withTimeout(resolveDbReadableMatch(searchTerm, titlePart), 4_000))
 
   const sourceBook = match
     ? {
@@ -318,16 +324,36 @@ export async function runSourceSearch(raw: string): Promise<SourceSearchResult> 
   let catalogHint: CatalogHint | null = null
 
   if (!match) {
-    catalogHint = await lookupCatalogHint(query, titlePart)
+    catalogHint = await lookupCatalogHint(searchTerm, titlePart)
     if (catalogHint) {
       unavailableReason = unavailableReasonForHint(catalogHint)
       unavailableNote = copyrightNoticeForHint(catalogHint)
     } else {
       unavailableReason = 'not_found'
       unavailableNote =
-        'No public-domain full read found on Project Gutenberg. Try a classic title or author name.'
+        parsed.intent === 'book_lookup'
+          ? 'No public-domain full read found on Project Gutenberg. Try a classic title or author name.'
+          : `No full read found for “${searchTerm}”. Try the exact title (e.g. Pride and Prejudice) or a public-domain classic.`
     }
   }
+
+  const guideTitle =
+    parsed.intent !== 'book_lookup'
+      ? searchTerm
+      : match?.title ?? catalogHint?.title ?? searchTerm
+  const guideAuthor =
+    parsed.intent !== 'book_lookup'
+      ? match?.author ?? catalogHint?.author ?? null
+      : match?.author ?? catalogHint?.author ?? null
+
+  const guideBook = guideTitle
+    ? { title: guideTitle, author: guideAuthor, subjects: [] as string[] }
+    : null
+
+  const clubGuide =
+    parsed.intent === 'book_lookup' && !match && !catalogHint && !searchTerm
+      ? null
+      : buildClubSearchGuide(parsed, guideBook)
 
   return {
     query,
@@ -337,6 +363,7 @@ export async function runSourceSearch(raw: string): Promise<SourceSearchResult> 
     unavailableReason,
     unavailableNote,
     catalogHint,
+    clubGuide,
   }
 }
 
