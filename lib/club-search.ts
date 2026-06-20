@@ -1,6 +1,7 @@
 import { buildReadableSourceLinks, resolveBookSourceHref, type BookSourceLink } from '@/lib/book-sources'
 import { normalisePhrase, parseTitleAuthorQuery, tokeniseSearch } from '@/lib/book-search'
-import { buildClubSearchGuide, buildClubPicksGuide, buildFallbackSearchGuide, type ClubSearchGuide } from '@/lib/club-search-guide'
+import { buildClubSearchGuide, buildClubPicksGuide, buildFallbackPickGuide, type ClubSearchGuide } from '@/lib/club-search-guide'
+import { getDailyClubReadableMatches } from '@/lib/daily-club-picks'
 import { parseClubSearchIntent, resolveSearchSubject, isClubSearchIntent } from '@/lib/club-search-intent'
 import { sql } from '@/lib/db'
 import {
@@ -17,6 +18,7 @@ export type SourceSearchMatch = {
   /** In-app read or direct Gutenberg edition URL. */
   readHref: string
   sourceLabel: string
+  bookId: number | null
 }
 
 export type SourceSearchFilmMatch = {
@@ -28,6 +30,8 @@ export type SourceSearchFilmMatch = {
 export type SourceSearchResult = {
   query: string
   match: SourceSearchMatch | null
+  /** Daily or club-pick shelf — full reads with covers, not text-only guides. */
+  pickBooks: SourceSearchMatch[]
   sources: BookSourceLink[]
   film: SourceSearchFilmMatch | null
   /** Why no match was returned — shown on the homepage. */
@@ -160,6 +164,7 @@ async function resolveGutenbergReadableMatch(
     gutenbergId,
     readHref: `https://www.gutenberg.org/ebooks/${gutenbergId}`,
     sourceLabel: 'Project Gutenberg · full read',
+    bookId: null,
   }
 }
 
@@ -198,6 +203,7 @@ async function resolveDbReadableMatch(
       gutenbergId,
       readHref: `/books/${row.id}/read`,
       sourceLabel: 'ReadAI · full read',
+      bookId: Number(row.id),
     }
   }
 
@@ -284,15 +290,17 @@ export async function runSourceSearch(raw: string): Promise<SourceSearchResult> 
   const parsed = parseClubSearchIntent(query)
 
   if (parsed.intent === 'club_picks') {
+    const pickBooks = await getDailyClubReadableMatches()
     return {
       query,
       match: null,
+      pickBooks,
       sources: [],
       film: null,
       unavailableReason: null,
       unavailableNote: null,
       catalogHint: null,
-      clubGuide: await buildClubPicksGuide(parsed),
+      clubGuide: buildClubPicksGuide(),
     }
   }
 
@@ -394,10 +402,15 @@ export async function runSourceSearch(raw: string): Promise<SourceSearchResult> 
   const finalGuide =
     clubGuide ??
     (clubIntent && guideBook
-      ? await buildFallbackSearchGuide(query)
+      ? buildFallbackPickGuide(query)
       : !match && !catalogHint
-        ? await buildFallbackSearchGuide(query)
+        ? buildFallbackPickGuide(query)
         : null)
+
+  const pickBooks =
+    finalGuide?.intent === 'club_picks' && !match
+      ? await getDailyClubReadableMatches()
+      : []
 
   const sourceBook = match
     ? {
@@ -410,6 +423,7 @@ export async function runSourceSearch(raw: string): Promise<SourceSearchResult> 
   return {
     query,
     match,
+    pickBooks,
     sources: sourceBook ? buildReadableSourceLinks(sourceBook) : [],
     film,
     unavailableReason,

@@ -8,19 +8,13 @@ import { ConnectedSourcesBlock } from '@/components/connected-sources-block'
 import { MagazineSourcesBlock } from '@/components/magazine-sources-block'
 import { GenreDirectoryGrid } from '@/components/genre-directory-grid'
 import { AuthNavLinks } from '@/components/auth-nav-links'
+import { ClubSearchBookCard, type ClubSearchBook } from '@/components/club-search-book-card'
 import { sourceAccessLabel } from '@/lib/book-sources'
 import { FEATURED_FILMS } from '@/lib/movie-sources'
 
 const FEATURED_FILM_COUNT = FEATURED_FILMS.length
 
-interface SourceSearchMatch {
-  title: string
-  author: string | null
-  coverUrl: string | null
-  gutenbergId: number
-  readHref: string
-  sourceLabel: string
-}
+type SourceSearchMatch = ClubSearchBook
 
 interface SourceSearchLink {
   id: string
@@ -38,6 +32,7 @@ interface SourceSearchFilm {
 
 interface SourceSearchState {
   match: SourceSearchMatch | null
+  pickBooks: SourceSearchMatch[]
   sources: SourceSearchLink[]
   film: SourceSearchFilm | null
   unavailableReason: 'copyright' | 'not_found' | null
@@ -59,9 +54,6 @@ interface GenreListingSection {
   tagline: string
   count: number
 }
-
-const SEARCH_MATCH_CARD_CLASS =
-  'flex items-start gap-4 border border-white/15 bg-[#171311] p-4'
 
 export default function ReadAIHome() {
   const router = useRouter()
@@ -133,6 +125,7 @@ export default function ReadAIHome() {
       setActiveSearch(term)
       setSourceSearch({
         match: data.match ?? null,
+        pickBooks: data.pickBooks ?? [],
         sources: data.sources ?? [],
         film: data.film ?? null,
         unavailableReason: data.unavailableReason ?? null,
@@ -220,7 +213,28 @@ export default function ReadAIHome() {
                 <p className="text-sm text-[#f3d7a4]">{searchError}</p>
               ) : sourceSearch ? (
                 <div className="space-y-6">
-                  {sourceSearch.clubGuide ? (
+                  {sourceSearch.pickBooks.length > 0 ? (
+                    <div className="border border-[#c9a96e]/35 bg-[#1a1410] p-4">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-[#c9a96e]">
+                        {sourceSearch.clubGuide?.intentLabel ?? 'Book club picks'}
+                      </p>
+                      <h3 className="mt-2 font-serif text-xl text-[#f5f2ed]">
+                        {sourceSearch.clubGuide?.heading ?? "Today's book club reads"}
+                      </h3>
+                      <ul className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                        {sourceSearch.pickBooks.map((book) => (
+                          <li key={`${book.gutenbergId}-${book.title}`} className="min-h-full">
+                            <ClubSearchBookCard book={book} />
+                          </li>
+                        ))}
+                      </ul>
+                      {sourceSearch.clubGuide?.note ? (
+                        <p className="mt-4 text-sm leading-relaxed text-[#e8e4df]/75">
+                          {sourceSearch.clubGuide.note}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : sourceSearch.clubGuide ? (
                     <div className="border border-[#c9a96e]/35 bg-[#1a1410] p-4">
                       <p className="text-[10px] uppercase tracking-[0.2em] text-[#c9a96e]">
                         {sourceSearch.clubGuide.intentLabel}
@@ -246,6 +260,8 @@ export default function ReadAIHome() {
                     </div>
                   ) : null}
 
+                  {sourceSearch.pickBooks.length === 0 ? (
+                  <>
                   <p className="text-sm text-[#e8e4df]/75">
                     {sourceSearch.match ? (
                       <>
@@ -266,51 +282,7 @@ export default function ReadAIHome() {
                   </p>
 
                   {sourceSearch.match ? (
-                    (() => {
-                      const match = sourceSearch.match
-                      const isInAppRead = match.readHref.startsWith('/books/')
-                      const cardInner = (
-                        <>
-                          {match.coverUrl ? (
-                            <img
-                              src={match.coverUrl}
-                              alt=""
-                              className="h-28 w-20 shrink-0 border border-white/15 bg-[#18120e] object-cover"
-                            />
-                          ) : null}
-                          <div className="min-w-0">
-                            <p className="text-[10px] uppercase tracking-[0.2em] text-[#c9a96e]">
-                              Best match · {match.sourceLabel}
-                            </p>
-                            <p className="mt-2 font-serif text-lg text-[#f5f2ed]">{match.title}</p>
-                            {match.author ? (
-                              <p className="mt-1 text-sm text-[#eadfce]">{match.author}</p>
-                            ) : null}
-                            <p className="mt-3 text-[10px] uppercase tracking-wider text-[#c9a96e]">
-                              Read full book →
-                            </p>
-                          </div>
-                        </>
-                      )
-
-                      return isInAppRead ? (
-                        <Link
-                          href={match.readHref}
-                          className={`${SEARCH_MATCH_CARD_CLASS} transition hover:border-[#c9a96e]/45`}
-                        >
-                          {cardInner}
-                        </Link>
-                      ) : (
-                        <a
-                          href={match.readHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`${SEARCH_MATCH_CARD_CLASS} transition hover:border-[#c9a96e]/45`}
-                        >
-                          {cardInner}
-                        </a>
-                      )
-                    })()
+                    <ClubSearchBookCard book={sourceSearch.match} />
                   ) : sourceSearch.unavailableReason === 'copyright' ? (
                     <div className="border border-[#c9a96e]/35 bg-[#1a1410] p-4">
                       <p className="text-[10px] uppercase tracking-[0.2em] text-[#c9a96e]">
@@ -409,6 +381,8 @@ export default function ReadAIHome() {
                         ))}
                       </ul>
                     </div>
+                  ) : null}
+                  </>
                   ) : null}
                 </div>
               ) : null}

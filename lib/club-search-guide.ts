@@ -1,5 +1,4 @@
 import { CURATED_CLASSICS } from '@/lib/curated-classics'
-import { getDailyClubPicks } from '@/lib/daily-club-picks'
 import { normalisePhrase } from '@/lib/book-search'
 import { intentLabel, type ClubSearchIntent, type ParsedClubSearch } from '@/lib/club-search-intent'
 
@@ -263,33 +262,26 @@ function buildIcebreaker(book: ClubGuideBook): string[] {
   ]
 }
 
-export async function buildClubPicksGuide(parsed: ParsedClubSearch): Promise<ClubSearchGuide> {
-  const picks = await getDailyClubPicks()
+export function buildClubPicksGuide(): ClubSearchGuide {
   return {
     intent: 'club_picks',
     intentLabel: intentLabel('club_picks'),
-    heading: 'Strong public-domain book club picks',
-    items: picks.map((book) => `${book.title} — ${book.author}`),
-    note: 'Eight full public-domain reads — new set daily from Project Gutenberg and your club library. Search any title to open the book and club prompts.',
-    similarBooks: picks,
+    heading: "Today's book club reads",
+    items: [],
+    note: 'Eight full reads in the club — new set daily. Open any cover to start reading, or save your place.',
+    similarBooks: [],
   }
 }
 
-/** Last resort — never send the user away empty-handed. */
-export async function buildFallbackSearchGuide(query: string): Promise<ClubSearchGuide> {
+export function buildFallbackPickGuide(query: string): ClubSearchGuide {
   const trimmed = query.trim().slice(0, 80)
-  const picks = await getDailyClubPicks()
   return {
     intent: 'club_picks',
     intentLabel: 'Start here',
-    heading: trimmed ? `Try these for “${trimmed}”` : 'Try these book club picks',
-    items: [
-      ...picks.map((book) => `${book.title} — ${book.author}`),
-      'Search an exact title — e.g. Pride and Prejudice, Frankenstein, Dracula',
-      'Ask a club question — e.g. discussion questions for Jane Eyre',
-    ],
-    note: 'Pick a title above and search again for discussion prompts and a full read when available.',
-    similarBooks: picks,
+    heading: trimmed ? `Readable picks for “${trimmed}”` : 'Readable book club picks',
+    items: [],
+    note: 'Open any book below to read in full. Search a title again for discussion prompts.',
+    similarBooks: [],
   }
 }
 

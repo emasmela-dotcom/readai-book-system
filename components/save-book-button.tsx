@@ -49,7 +49,9 @@ export function SaveBookButton({
     }
   }, [bookId])
 
-  async function toggle() {
+  async function toggle(event: React.MouseEvent<HTMLButtonElement>) {
+    event.preventDefault()
+    event.stopPropagation()
     if (busy) return
     setBusy(true)
     try {

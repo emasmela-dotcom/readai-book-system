@@ -1,4 +1,9 @@
 import { CURATED_CLASSICS } from '@/lib/curated-classics'
+import {
+  gutenbergScannedCoverUrl,
+  isRealCoverUrl,
+  resolveBestCoverUrl,
+} from '@/lib/book-covers'
 import { sql } from '@/lib/db'
 import {
   fetchGutendexPage,
@@ -9,8 +14,25 @@ import {
 
 const PICKS_PER_DAY = 8
 const SOURCE_TIMEOUT_MS = 6_000
+const COVER_TIMEOUT_MS = 3_500
 
-export type DailyPick = { title: string; author: string }
+export type DailyPickSeed = {
+  title: string
+  author: string
+  gutenbergId: number
+  dbId?: number
+  coverUrl?: string | null
+}
+
+export type DailyReadablePick = {
+  title: string
+  author: string | null
+  coverUrl: string | null
+  gutenbergId: number
+  readHref: string
+  sourceLabel: string
+  bookId: number | null
+}
 
 const GUTENDEX_SUBJECTS = [
   'fiction',
@@ -61,8 +83,7 @@ function shufflePool<T extends { title: string }>(pool: T[], seed: string): T[] 
   return arr
 }
 
-/** English Gutendex hit with a plain-text full read available. */
-function gutendexToPick(book: GutendexBook): DailyPick | null {
+function gutendexToSeed(book: GutendexBook): DailyPickSeed | null {
   if (!book.languages?.includes('en')) return null
   if (!pickPlainTextUrl(book.formats)) return null
   const title = shortenTitle(book.title?.trim() ?? '')
@@ -70,15 +91,16 @@ function gutendexToPick(book: GutendexBook): DailyPick | null {
   return {
     title,
     author: book.authors?.[0]?.name?.trim() || 'Unknown author',
+    gutenbergId: book.id,
   }
 }
 
-async function withSourceTimeout<T>(promise: Promise<T>): Promise<T | null> {
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
   try {
     return await Promise.race([
       promise,
       new Promise<null>((resolve) => {
-        setTimeout(() => resolve(null), SOURCE_TIMEOUT_MS)
+        setTimeout(() => resolve(null), ms)
       }),
     ])
   } catch {
@@ -89,35 +111,34 @@ async function withSourceTimeout<T>(promise: Promise<T>): Promise<T | null> {
 function collectReadableGutendex(
   books: GutendexBook[] | undefined,
   seen: Set<string>,
-  picks: DailyPick[],
+  picks: DailyPickSeed[],
   count: number,
 ): void {
   for (const book of books ?? []) {
     if (picks.length >= count) return
-    const pick = gutendexToPick(book)
-    if (!pick) continue
-    const key = normaliseTitleKey(pick.title)
+    const seed = gutendexToSeed(book)
+    if (!seed) continue
+    const key = normaliseTitleKey(seed.title)
     if (!key || seen.has(key)) continue
     seen.add(key)
-    picks.push(pick)
+    picks.push(seed)
   }
 }
 
-/** Project Gutenberg via Gutendex — only titles with plain-text full reads. */
-async function fetchGutendexReadablePicks(day: number, count: number): Promise<DailyPick[]> {
+async function fetchGutendexReadableSeeds(day: number, count: number): Promise<DailyPickSeed[]> {
   const page = (day * 13) % 2200 + 1
   const subject = GUTENDEX_SUBJECTS[day % GUTENDEX_SUBJECTS.length]
   const searchPage = Math.floor(day / GUTENDEX_SUBJECTS.length) % 40 + 1
   const extraPage = (page + 37) % 2200 + 1
 
   const [pageCatalog, searchCatalog, extraCatalog] = await Promise.all([
-    withSourceTimeout(fetchGutendexPage(page)),
-    withSourceTimeout(fetchGutendexSearch(subject, searchPage)),
-    withSourceTimeout(fetchGutendexPage(extraPage)),
+    withTimeout(fetchGutendexPage(page), SOURCE_TIMEOUT_MS),
+    withTimeout(fetchGutendexSearch(subject, searchPage), SOURCE_TIMEOUT_MS),
+    withTimeout(fetchGutendexPage(extraPage), SOURCE_TIMEOUT_MS),
   ])
 
   const seen = new Set<string>()
-  const picks: DailyPick[] = []
+  const picks: DailyPickSeed[] = []
   collectReadableGutendex(pageCatalog?.results, seen, picks, count)
   collectReadableGutendex(searchCatalog?.results, seen, picks, count)
   collectReadableGutendex(extraCatalog?.results, seen, picks, count)
@@ -125,45 +146,62 @@ async function fetchGutendexReadablePicks(day: number, count: number): Promise<D
   return picks
 }
 
-/** Imported club library — rows tied to Gutenberg full reads. */
-async function fetchCatalogPicks(day: number, count: number): Promise<DailyPick[]> {
+/** Club catalog rows — in-app full reads with real cover art. */
+async function fetchCatalogSeeds(day: number, count: number): Promise<DailyPickSeed[]> {
   const seed = String(day)
   const rows = await sql`
-    SELECT title, author FROM (
+    SELECT id, title, author, cover_url, gutenberg_id FROM (
       SELECT DISTINCT ON (LOWER(TRIM(title)))
         id,
         title,
-        author
+        author,
+        cover_url,
+        gutenberg_id
       FROM books
       WHERE gutenberg_id IS NOT NULL
         AND title IS NOT NULL
         AND TRIM(title) <> ''
+        AND cover_url IS NOT NULL
+        AND cover_url NOT LIKE '%/cache/epub/%'
+        AND (
+          cover_url LIKE 'https://www.gutenberg.org/files/%/images/cover.jpg'
+          OR cover_url LIKE 'https://covers.openlibrary.org/b/id/%'
+        )
       ORDER BY LOWER(TRIM(title)), id
     ) AS deduped
     ORDER BY md5(concat(id::text, ${seed}))
     LIMIT ${count}
   `
 
-  return rows
-    .map((row) => ({
-      title: String(row.title ?? '').trim(),
+  const picks: DailyPickSeed[] = []
+  for (const row of rows) {
+    const gutenbergId = row.gutenberg_id
+    const title = String(row.title ?? '').trim()
+    if (typeof gutenbergId !== 'number' || !title) continue
+    picks.push({
+      title,
       author: String(row.author ?? '').trim() || 'Unknown author',
-    }))
-    .filter((row) => row.title.length > 0)
+      gutenbergId,
+      dbId: Number(row.id),
+      coverUrl: typeof row.cover_url === 'string' ? row.cover_url : null,
+    })
+  }
+  return picks
 }
 
-function curatedDailyPicks(count: number, day: number): DailyPick[] {
+function curatedDailySeeds(count: number, day: number): DailyPickSeed[] {
   const pool = CURATED_CLASSICS.map((e) => ({
     title: shortenTitle(e.title),
     author: e.author,
+    gutenbergId: e.id,
   }))
   const week = Math.floor(day / 7)
   return shufflePool(pool, `readai-curated-w${week}-d${day}`).slice(0, count)
 }
 
-function mergeUniquePicks(pools: DailyPick[][], day: number, count: number): DailyPick[] {
+function mergeUniqueSeeds(pools: DailyPickSeed[][], day: number, count: number): DailyPickSeed[] {
   const seen = new Set<string>()
-  const merged: DailyPick[] = []
+  const merged: DailyPickSeed[] = []
 
   for (const pool of pools) {
     for (const pick of pool) {
@@ -177,28 +215,106 @@ function mergeUniquePicks(pools: DailyPick[][], day: number, count: number): Dai
   return shufflePool(merged, String(day)).slice(0, count)
 }
 
-/**
- * Eight full-read book-club picks — new set each UTC day.
- * Only Project Gutenberg titles with plain-text editions, plus imported club library rows.
- */
-export async function getDailyClubPicks(count = PICKS_PER_DAY): Promise<DailyPick[]> {
+async function getDailyPickSeeds(count = PICKS_PER_DAY): Promise<DailyPickSeed[]> {
   const day = epochDay()
 
-  const [gutenberg, catalog] = await Promise.allSettled([
-    fetchGutendexReadablePicks(day, count * 2),
-    fetchCatalogPicks(day, count).catch(() => [] as DailyPick[]),
-  ])
-
-  const pools: DailyPick[][] = [
-    gutenberg.status === 'fulfilled' ? gutenberg.value : [],
-    catalog.status === 'fulfilled' ? catalog.value : [],
-  ]
-
-  let picks = mergeUniquePicks(pools, day, count)
+  const catalog = await fetchCatalogSeeds(day, count * 3).catch(() => [] as DailyPickSeed[])
+  let picks = mergeUniqueSeeds([catalog], day, count)
 
   if (picks.length < count) {
-    picks = mergeUniquePicks([picks, curatedDailyPicks(count * 2, day)], day, count)
+    const gutenberg = await fetchGutendexReadableSeeds(day, (count - picks.length) * 4)
+    picks = mergeUniqueSeeds([picks, gutenberg], day, count)
+  }
+
+  if (picks.length < count) {
+    picks = mergeUniqueSeeds([picks, curatedDailySeeds(count * 2, day)], day, count)
   }
 
   return picks
+}
+
+async function resolveReadableMatches(seeds: DailyPickSeed[]): Promise<DailyReadablePick[]> {
+  const gutenbergIds = [...new Set(seeds.map((s) => s.gutenbergId))]
+
+  const dbRows =
+    gutenbergIds.length > 0
+      ? await sql`
+          SELECT id, title, author, cover_url, gutenberg_id
+          FROM books
+          WHERE gutenberg_id = ANY(${gutenbergIds})
+        `
+      : []
+
+  const byGutenberg = new Map<number, (typeof dbRows)[number]>()
+  for (const row of dbRows) {
+    if (typeof row.gutenberg_id === 'number') {
+      byGutenberg.set(row.gutenberg_id, row)
+    }
+  }
+
+  return seeds.map((seed) => {
+    const row = byGutenberg.get(seed.gutenbergId)
+    const dbId = seed.dbId ?? (typeof row?.id === 'number' ? Number(row.id) : null)
+    const title = String(row?.title ?? seed.title).trim()
+    const author =
+      (typeof row?.author === 'string' ? row.author.trim() : null) ||
+      seed.author ||
+      null
+    let coverUrl =
+      (typeof row?.cover_url === 'string' && row.cover_url.trim()) ||
+      seed.coverUrl ||
+      gutenbergScannedCoverUrl(seed.gutenbergId)
+
+    if (coverUrl && !isRealCoverUrl(coverUrl)) {
+      coverUrl = gutenbergScannedCoverUrl(seed.gutenbergId)
+    }
+
+    if (dbId) {
+      return {
+        title,
+        author,
+        coverUrl,
+        gutenbergId: seed.gutenbergId,
+        readHref: `/books/${dbId}/read`,
+        sourceLabel: 'ReadAI · full read',
+        bookId: dbId,
+      }
+    }
+
+    return {
+      title,
+      author,
+      coverUrl,
+      gutenbergId: seed.gutenbergId,
+      readHref: `https://www.gutenberg.org/ebooks/${seed.gutenbergId}`,
+      sourceLabel: 'Project Gutenberg · full read',
+      bookId: null,
+    }
+  })
+}
+
+async function enrichPickCovers(picks: DailyReadablePick[]): Promise<DailyReadablePick[]> {
+  return Promise.all(
+    picks.map(async (pick) => {
+      if (pick.coverUrl && isRealCoverUrl(pick.coverUrl)) return pick
+
+      const resolved = await withTimeout(
+        resolveBestCoverUrl(pick.gutenbergId, { title: pick.title, author: pick.author }),
+        COVER_TIMEOUT_MS,
+      )
+
+      return {
+        ...pick,
+        coverUrl: resolved ?? pick.coverUrl ?? gutenbergScannedCoverUrl(pick.gutenbergId),
+      }
+    }),
+  )
+}
+
+/** Eight full-read book club picks — cover cards, in-app when imported. */
+export async function getDailyClubReadableMatches(count = PICKS_PER_DAY): Promise<DailyReadablePick[]> {
+  const seeds = await getDailyPickSeeds(count)
+  const matches = await resolveReadableMatches(seeds)
+  const withCovers = await enrichPickCovers(matches)
+  return withCovers.slice(0, count)
 }
