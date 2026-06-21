@@ -1,11 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { type FormEvent, useState } from 'react'
 
 export function ResetPasswordForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token') ?? ''
   const [password, setPassword] = useState('')
@@ -32,6 +31,7 @@ export function ResetPasswordForm() {
       const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ token, password }),
       })
       const data = (await response.json()) as { error?: string }
@@ -41,8 +41,7 @@ export function ResetPasswordForm() {
         return
       }
 
-      router.push('/sign-in')
-      router.refresh()
+      window.location.assign('/')
     } catch {
       setError('Network error. Please try again.')
     } finally {

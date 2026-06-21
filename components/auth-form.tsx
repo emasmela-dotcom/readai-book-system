@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { type FormEvent, useState } from 'react'
 
 export function AuthForm({
@@ -9,7 +9,6 @@ export function AuthForm({
 }: {
   mode: 'sign-in' | 'sign-up'
 }) {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const nextPath = searchParams.get('next') || '/'
   const [email, setEmail] = useState('')
@@ -26,6 +25,7 @@ export function AuthForm({
       const response = await fetch(`/api/auth/${mode}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email, password }),
       })
       const data = (await response.json()) as { error?: string }
@@ -35,8 +35,7 @@ export function AuthForm({
         return
       }
 
-      router.push(nextPath)
-      router.refresh()
+      window.location.assign(nextPath)
     } catch {
       setError('Network error. Please try again.')
     } finally {

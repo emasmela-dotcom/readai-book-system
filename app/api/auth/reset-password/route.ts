@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { hashPassword, isValidPassword } from '@/lib/auth/password'
+import { createSession } from '@/lib/auth/session'
 import { hashResetToken } from '@/lib/auth/reset-token'
 import { sql } from '@/lib/db'
 
@@ -43,6 +44,8 @@ export async function POST(request: Request) {
       WHERE id = ${row.user_id} AND trial_started_at IS NULL
     `
     await sql`DELETE FROM password_reset_tokens WHERE user_id = ${row.user_id}`
+
+    await createSession(row.user_id)
 
     return NextResponse.json({ ok: true })
   } catch (error) {
