@@ -208,31 +208,26 @@ export function HomeBrowseHub({ rooms, genresLoading }: HomeBrowseHubProps) {
                   </Link>
                 </li>
               </ul>
-
-              <p className="mt-8 text-sm text-[#eadfce]/80">
-                Search any title above, then follow connected source links — Gutenberg, Open Library,
-                Libby, and more.
-              </p>
             </div>
 
             <aside
               ref={heroAsideRef}
               className="mt-8 border border-white/10 bg-[#140f0c] p-5 xl:absolute xl:right-0 xl:top-0 xl:mt-0 xl:w-[300px]"
             >
-              <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">Start here</p>
-              <p className="mt-4 font-serif text-xl text-[#f5eee6]">Search connected sources</p>
-              <p className="mt-3 text-sm leading-relaxed text-[#eadfce]/74">
-                ReadAI is your club — books come from legal sites you already trust, not a hosted
-                catalog.
-              </p>
-              <p className="mt-4">
-                <a
-                  href="#search"
-                  className="text-xs uppercase tracking-wider text-[#d8b67c] hover:underline"
-                >
-                  Search sources →
-                </a>
-              </p>
+              <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">Film room</p>
+              <Link href="/movies" className="mt-4 flex items-start gap-4 transition hover:opacity-90">
+                <FilmCoverThumb
+                  filmTitle={SPOTLIGHT_FILM.title}
+                  eager
+                  className="h-28 w-20 shrink-0 border border-white/15 bg-[#18120e] object-cover"
+                />
+                <div className="min-w-0">
+                  <p className="font-serif text-xl text-[#f5eee6]">{FEATURED_FILM_COUNT} movie books</p>
+                  <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[#d8b67c]">
+                    Enter Movies section →
+                  </p>
+                </div>
+              </Link>
             </aside>
           </div>
         </div>

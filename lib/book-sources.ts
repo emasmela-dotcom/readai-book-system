@@ -59,13 +59,6 @@ export const CONNECTED_SOURCES: ConnectedSource[] = [
     access: 'catalog',
   },
   {
-    id: 'feedbooks',
-    label: 'Feedbooks (public domain)',
-    tagline: 'Curated public-domain ebooks and discoverable free editions.',
-    href: 'https://www.feedbooks.com/catalog/public_domain',
-    access: 'read',
-  },
-  {
     id: 'wikisource',
     label: 'Wikisource',
     tagline: 'Open text transcriptions from the Wikimedia community.',
@@ -324,7 +317,6 @@ export function buildBookSourceLinks(book: SourceBookInput): BookSourceLink[] {
 const READABLE_SOURCE_IDS: BookSourceId[] = [
   'gutenberg',
   'standard-ebooks',
-  'feedbooks',
   'wikisource',
   'wikibooks',
   'librivox',
