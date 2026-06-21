@@ -48,6 +48,26 @@ interface SourceSearchState {
   } | null
 }
 
+function clubSearchLayout(sourceSearch: SourceSearchState) {
+  const hidePickBooks =
+    sourceSearch.unavailableReason === 'copyright' ||
+    Boolean(sourceSearch.catalogHint && !sourceSearch.match)
+  const showPickGrid = sourceSearch.pickBooks.length > 0 && !hidePickBooks
+  const guideHasItems = (sourceSearch.clubGuide?.items.length ?? 0) > 0
+  const showGuidePanel = Boolean(sourceSearch.clubGuide && guideHasItems && !showPickGrid)
+  const showBookResult =
+    Boolean(sourceSearch.match) ||
+    hidePickBooks ||
+    Boolean(
+      sourceSearch.unavailableReason ||
+        sourceSearch.catalogHint ||
+        sourceSearch.unavailableNote,
+    ) ||
+    (!showPickGrid && sourceSearch.pickBooks.length === 0 && !guideHasItems)
+
+  return { showPickGrid, showGuidePanel, showBookResult, guideHasItems }
+}
+
 interface GenreListingSection {
   id: string
   title: string
@@ -212,8 +232,12 @@ export default function ReadAIHome() {
               {searchError ? (
                 <p className="text-sm text-[#f3d7a4]">{searchError}</p>
               ) : sourceSearch ? (
+                (() => {
+                  const { showPickGrid, showGuidePanel, showBookResult, guideHasItems } =
+                    clubSearchLayout(sourceSearch)
+                  return (
                 <div className="space-y-6">
-                  {sourceSearch.pickBooks.length > 0 ? (
+                  {showPickGrid ? (
                     <div className="border border-[#c9a96e]/35 bg-[#1a1410] p-4">
                       <p className="text-[10px] uppercase tracking-[0.2em] text-[#c9a96e]">
                         {sourceSearch.clubGuide?.intentLabel ?? 'Book club picks'}
@@ -234,7 +258,7 @@ export default function ReadAIHome() {
                         </p>
                       ) : null}
                     </div>
-                  ) : sourceSearch.clubGuide ? (
+                  ) : showGuidePanel && sourceSearch.clubGuide ? (
                     <div className="border border-[#c9a96e]/35 bg-[#1a1410] p-4">
                       <p className="text-[10px] uppercase tracking-[0.2em] text-[#c9a96e]">
                         {sourceSearch.clubGuide.intentLabel}
@@ -260,7 +284,7 @@ export default function ReadAIHome() {
                     </div>
                   ) : null}
 
-                  {sourceSearch.pickBooks.length === 0 ? (
+                  {showBookResult ? (
                   <>
                   <p className="text-sm text-[#e8e4df]/75">
                     {sourceSearch.match ? (
@@ -268,7 +292,12 @@ export default function ReadAIHome() {
                         Readable book for{' '}
                         <span className="text-[#f5f2ed]">&ldquo;{activeSearch}&rdquo;</span>
                       </>
-                    ) : sourceSearch.clubGuide ? (
+                    ) : sourceSearch.unavailableReason === 'copyright' ? (
+                      <>
+                        No full read for{' '}
+                        <span className="text-[#f5f2ed]">&ldquo;{activeSearch}&rdquo;</span>
+                      </>
+                    ) : guideHasItems ? (
                       <>
                         Book club results for{' '}
                         <span className="text-[#f5f2ed]">&ldquo;{activeSearch}&rdquo;</span>
@@ -385,6 +414,8 @@ export default function ReadAIHome() {
                   </>
                   ) : null}
                 </div>
+                  )
+                })()
               ) : null}
             </div>
           ) : null}

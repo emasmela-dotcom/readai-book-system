@@ -29,6 +29,23 @@ export function tokeniseSearch(input: string): string[] {
     .slice(0, 8)
 }
 
+/** Significant title tokens — keeps repeated words (e.g. “tomorrow” three times). */
+export function significantTitleTokens(input: string): string[] {
+  return input
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((token) => token.length >= 2 && !STOPWORDS.has(token))
+}
+
+export function titleTokenCounts(tokens: string[]): Map<string, number> {
+  const counts = new Map<string, number>()
+  for (const token of tokens) {
+    counts.set(token, (counts.get(token) ?? 0) + 1)
+  }
+  return counts
+}
+
 export function parseTitleAuthorQuery(raw: string): {
   titlePart: string
   authorPart: string

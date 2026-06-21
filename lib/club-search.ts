@@ -1,8 +1,13 @@
 import { buildReadableSourceLinks, resolveBookSourceHref, type BookSourceLink } from '@/lib/book-sources'
-import { normalisePhrase, parseTitleAuthorQuery, tokeniseSearch } from '@/lib/book-search'
+import { normalisePhrase, parseTitleAuthorQuery, significantTitleTokens, titleTokenCounts } from '@/lib/book-search'
 import { buildClubSearchGuide, buildClubPicksGuide, buildFallbackPickGuide, type ClubSearchGuide } from '@/lib/club-search-guide'
 import { getDailyClubReadableMatches } from '@/lib/daily-club-picks'
-import { parseClubSearchIntent, resolveSearchSubject, isClubSearchIntent } from '@/lib/club-search-intent'
+import {
+  parseClubSearchIntent,
+  resolveSearchSubject,
+  isClubSearchIntent,
+  type ClubSearchIntent,
+} from '@/lib/club-search-intent'
 import { sql } from '@/lib/db'
 import {
   pickPlainTextUrl,
@@ -54,13 +59,40 @@ function titleMatchesQuery(query: string, titlePart: string, bookTitle: string):
 
   const candidates = [query, titlePart].map((part) => normalisePhrase(part)).filter(Boolean)
   for (const candidate of candidates) {
-    if (book === candidate || book.startsWith(candidate) || candidate.startsWith(book)) return true
-    if (candidate.length >= 4 && (book.includes(candidate) || candidate.includes(book))) return true
+    if (book === candidate) return true
+    if (candidate.length >= 8 && book.startsWith(candidate)) return true
+    if (book.length >= 8 && candidate.startsWith(book)) return true
   }
 
-  const tokens = tokeniseSearch(titlePart || query)
-  if (tokens.length === 0) return false
-  return tokens.every((token) => book.includes(token))
+  const queryTokens = significantTitleTokens(titlePart || query)
+  if (queryTokens.length === 0) return false
+
+  const bookTokens = significantTitleTokens(bookTitle)
+  const queryCounts = titleTokenCounts(queryTokens)
+  const bookCounts = titleTokenCounts(bookTokens)
+
+  for (const [token, need] of queryCounts) {
+    if ((bookCounts.get(token) ?? 0) < need) return false
+  }
+
+  if (queryTokens.length >= 2) {
+    const uniqueQuery = new Set(queryTokens)
+    const bookTokenSet = new Set(bookTokens)
+    let shared = 0
+    for (const token of uniqueQuery) {
+      if (bookTokenSet.has(token)) shared += 1
+    }
+    if (shared / uniqueQuery.size < 0.75) return false
+  }
+
+  return true
+}
+
+function normalisedTitlesAlign(a: string, b: string): boolean {
+  const left = normalisePhrase(a)
+  const right = normalisePhrase(b)
+  if (!left || !right) return false
+  return left === right || left.startsWith(right) || right.startsWith(left)
 }
 
 function scoreGutenbergBook(
@@ -240,6 +272,47 @@ function unavailableReasonForHint(hint: CatalogHint): 'copyright' | 'not_found' 
   return 'copyright'
 }
 
+/** True when the query looks like a specific title — not vague topic or nonsense. */
+function isSpecificTitleLookup(query: string, intent: ClubSearchIntent): boolean {
+  if (intent !== 'book_lookup') return false
+
+  const trimmed = query.trim()
+  if (!trimmed) return false
+
+  const lower = trimmed.toLowerCase()
+  if (/^(xyz|qwerty|asdf|test123|nonsense)\b/.test(lower)) return false
+  if (/^[a-z0-9]{1,16}$/.test(lower) && !/[aeiouy]/.test(lower)) return false
+
+  const words = trimmed.split(/\s+/).filter(Boolean)
+  if (words.length === 0) return false
+
+  const titleCaseWords = words.filter(
+    (word) => /^[A-Z][a-z]/.test(word) || /^[A-Z]{2,}$/.test(word),
+  ).length
+
+  if (words.length === 1 && trimmed.length > 3 && /^[A-Z]/.test(trimmed)) return true
+  if (words.length >= 2 && words.length <= 8 && titleCaseWords >= 2) return true
+  if (words.length === 2 && titleCaseWords >= 1 && words.every((word) => /^[A-Z]/.test(word))) {
+    return true
+  }
+
+  return false
+}
+
+function shouldOfferFallbackPicks(
+  parsed: ReturnType<typeof parseClubSearchIntent>,
+  match: SourceSearchMatch | null,
+  catalogHint: CatalogHint | null,
+  unavailableReason: 'copyright' | 'not_found' | null,
+): boolean {
+  if (match) return false
+  if (catalogHint) return false
+  if (unavailableReason === 'copyright') return false
+  if (isSpecificTitleLookup(parsed.raw, parsed.intent)) return false
+  if (isClubSearchIntent(parsed.intent)) return true
+  return true
+}
+
 async function lookupCatalogHint(query: string, titlePart: string): Promise<CatalogHint | null> {
   const searchTerm = titlePart.trim() || query.trim()
   if (!searchTerm) return null
@@ -264,7 +337,10 @@ async function lookupCatalogHint(query: string, titlePart: string): Promise<Cata
 
       for (const doc of data.docs ?? []) {
         const title = doc.title?.trim()
-        if (!title || !titleMatchesQuery(query, titlePart, title)) continue
+        if (!title) continue
+        const queryNorm = normalisePhrase(titlePart || searchTerm)
+        const titleNorm = normalisePhrase(title)
+        if (titleNorm !== queryNorm && !titleMatchesQuery(query, titlePart, title)) continue
         const author = doc.author_name?.[0]?.trim() ?? null
         const firstPublishYear =
           typeof doc.first_publish_year === 'number' ? doc.first_publish_year : null
@@ -308,6 +384,7 @@ export async function runSourceSearch(raw: string): Promise<SourceSearchResult> 
   const searchTerm = resolveSearchSubject(parsed.subject.trim() || query)
   const { titlePart, authorPart } = parseTitleAuthorQuery(searchTerm)
   const lookupTimeoutMs = clubIntent ? 4_000 : 10_000
+  const specificTitle = isSpecificTitleLookup(parsed.raw, parsed.intent)
 
   let match: SourceSearchMatch | null = null
   let film: SourceSearchFilmMatch | null = null
@@ -355,10 +432,19 @@ export async function runSourceSearch(raw: string): Promise<SourceSearchResult> 
       }
     }
 
-    if (!match && !clubIntent) {
+    const needsCatalogHint = !match || specificTitle || (match && !clubIntent)
+    if (needsCatalogHint && !clubIntent) {
       catalogHint = await lookupCatalogHint(searchTerm, titlePart)
     } else if (!match && clubIntent) {
       catalogHint = await withTimeout(lookupCatalogHint(searchTerm, titlePart), 2_500)
+    }
+
+    if (match && catalogHint && !normalisedTitlesAlign(match.title, catalogHint.title)) {
+      const queryNorm = normalisePhrase(titlePart || query)
+      const hintNorm = normalisePhrase(catalogHint.title)
+      if (hintNorm === queryNorm || normalisedTitlesAlign(titlePart || query, catalogHint.title)) {
+        match = null
+      }
     }
   } catch (error) {
     console.error('[club-search] lookup error:', error)
@@ -399,16 +485,18 @@ export async function runSourceSearch(raw: string): Promise<SourceSearchResult> 
     return null
   })()
 
+  const offerFallbackPicks = shouldOfferFallbackPicks(
+    parsed,
+    match,
+    catalogHint,
+    unavailableReason,
+  )
+
   const finalGuide =
-    clubGuide ??
-    (clubIntent && guideBook
-      ? buildFallbackPickGuide(query)
-      : !match && !catalogHint
-        ? buildFallbackPickGuide(query)
-        : null)
+    clubGuide ?? (offerFallbackPicks ? buildFallbackPickGuide(query) : null)
 
   const pickBooks =
-    finalGuide?.intent === 'club_picks' && !match
+    offerFallbackPicks && finalGuide?.intent === 'club_picks' && !match
       ? await getDailyClubReadableMatches()
       : []
 
