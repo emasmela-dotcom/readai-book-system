@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: result.error }, { status: 503 })
     }
 
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, confirmationSent: result.confirmationSent })
   } catch (error) {
     console.error('support route error:', error)
     return NextResponse.json({ error: 'Could not send your message.' }, { status: 500 })

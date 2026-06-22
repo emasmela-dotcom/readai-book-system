@@ -11,7 +11,7 @@ export type SupportDeliveryInput = {
 }
 
 export type SupportDeliveryResult =
-  | { ok: true }
+  | { ok: true; confirmationSent: boolean }
   | { ok: false; error: string }
 
 /** Save to Neon, then send from ReadAI's server — user mail app never opens. */
@@ -39,7 +39,7 @@ export async function deliverSupportMessage(
     if (!confirmationResult.ok) {
       console.error('[support] confirmation not sent:', confirmationResult.error)
     }
-    return { ok: true }
+    return { ok: true, confirmationSent: confirmationResult.ok }
   }
 
   if (savedToNeon) {

@@ -7,6 +7,7 @@ export function SupportForm() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
+  const [confirmationSent, setConfirmationSent] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(event: FormEvent) {
@@ -20,13 +21,18 @@ export function SupportForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, message }),
       })
-      const data = (await response.json()) as { ok?: boolean; error?: string }
+      const data = (await response.json()) as {
+        ok?: boolean
+        confirmationSent?: boolean
+        error?: string
+      }
 
       if (!response.ok || data.ok !== true) {
         setError(data.error ?? 'Something went wrong. Your message was not delivered.')
         return
       }
 
+      setConfirmationSent(Boolean(data.confirmationSent))
       setSent(true)
     } catch {
       setError('Network error. Please try again.')
@@ -39,7 +45,16 @@ export function SupportForm() {
     return (
       <div className="mt-8 border border-[#c9a96e]/40 bg-[#171311] p-6">
         <p className="text-sm text-[#f5f2ed]">
-          Your message was sent. Check {email} for a confirmation — we will reply there too.
+          {confirmationSent ? (
+            <>
+              Your message was sent. Check {email} for a confirmation — we will reply there too.
+            </>
+          ) : (
+            <>
+              Your message was sent to support. We could not email a confirmation to {email} yet —
+              we will still reply to that address.
+            </>
+          )}
         </p>
       </div>
     )

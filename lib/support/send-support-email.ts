@@ -35,6 +35,42 @@ We will reply to ${userEmail} as soon as we can. You do not need to send it agai
 — ReadAI Book Club`
 }
 
+function resendFromIsTestOnly(): boolean {
+  return supportFromAddress().includes('@resend.dev')
+}
+
+/** Resend test sender can only deliver to the account owner inbox. */
+function canResendReachRecipient(recipient: string): boolean {
+  if (!resendFromIsTestOnly()) return true
+  return recipient.trim().toLowerCase() === SUPPORT_INBOX.toLowerCase()
+}
+
+async function sendConfirmationViaGmail(input: SupportEmailInput): Promise<SupportEmailResult> {
+  const user = gmailSenderAddress()
+  const pass = await getGmailAppPassword()
+  if (!pass) return { ok: false, error: 'Gmail app password not configured.' }
+
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: { user, pass },
+  })
+
+  try {
+    await transporter.sendMail({
+      from: `ReadAI Support <${user}>`,
+      to: input.email,
+      subject: confirmationSubject(),
+      text: confirmationBody(input.email),
+    })
+    return { ok: true }
+  } catch (error) {
+    console.error('[support] gmail confirmation error:', error)
+    return { ok: false, error: 'Confirmation email failed.' }
+  }
+}
+
 async function sendViaResend(
   input: SupportEmailInput,
   apiKey: string,
@@ -114,9 +150,18 @@ export async function sendSupportEmail(input: SupportEmailInput): Promise<Suppor
 export async function sendSupportConfirmationEmail(
   input: SupportEmailInput,
 ): Promise<SupportEmailResult> {
-  const resendKeys = await getResendApiKeys()
-  const gmailPass = await getGmailAppPassword()
+  const gmailResult = await sendConfirmationViaGmail(input)
+  if (gmailResult.ok) return gmailResult
 
+  if (!canResendReachRecipient(input.email)) {
+    return {
+      ok: false,
+      error:
+        'Confirmation needs Gmail or a verified Resend domain (test sender only reaches the support inbox).',
+    }
+  }
+
+  const resendKeys = await getResendApiKeys()
   for (const apiKey of resendKeys) {
     const resend = new Resend(apiKey)
     const { error } = await resend.emails.send({
@@ -129,27 +174,5 @@ export async function sendSupportConfirmationEmail(
     console.error('[support] resend confirmation error:', error)
   }
 
-  if (gmailPass) {
-    const user = gmailSenderAddress()
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: { user, pass: gmailPass },
-    })
-    try {
-      await transporter.sendMail({
-        from: `ReadAI Support <${user}>`,
-        to: input.email,
-        subject: confirmationSubject(),
-        text: confirmationBody(input.email),
-      })
-      return { ok: true }
-    } catch (error) {
-      console.error('[support] gmail confirmation error:', error)
-      return { ok: false, error: 'Confirmation email failed.' }
-    }
-  }
-
-  return { ok: false, error: 'Confirmation email not configured.' }
+  return { ok: false, error: gmailResult.error }
 }
