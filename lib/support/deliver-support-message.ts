@@ -1,6 +1,9 @@
 import { ensureResendKeyInNeon } from '@/lib/support/resend-credentials'
 import { saveSupportMessage } from '@/lib/support/save-support-message'
-import { sendSupportEmail } from '@/lib/support/send-support-email'
+import {
+  sendSupportConfirmationEmail,
+  sendSupportEmail,
+} from '@/lib/support/send-support-email'
 
 export type SupportDeliveryInput = {
   email: string
@@ -32,6 +35,10 @@ export async function deliverSupportMessage(
   }
 
   if (emailResult.ok) {
+    const confirmationResult = await sendSupportConfirmationEmail(input)
+    if (!confirmationResult.ok) {
+      console.error('[support] confirmation not sent:', confirmationResult.error)
+    }
     return { ok: true }
   }
 

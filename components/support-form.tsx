@@ -38,7 +38,9 @@ export function SupportForm() {
   if (sent) {
     return (
       <div className="mt-8 border border-[#c9a96e]/40 bg-[#171311] p-6">
-        <p className="text-sm text-[#f5f2ed]">Your message was sent. We will reply to {email}.</p>
+        <p className="text-sm text-[#f5f2ed]">
+          Your message was sent. Check {email} for a confirmation — we will reply there too.
+        </p>
       </div>
     )
   }

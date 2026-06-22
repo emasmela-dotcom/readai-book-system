@@ -20,8 +20,8 @@ export default function SupportPage() {
           <p className="text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Support</p>
           <h1 className="mt-2 font-serif text-3xl text-[#f5f2ed]">Contact us</h1>
           <p className="mt-3 text-sm leading-relaxed text-[#eadfce]">
-            Send a message from here — your email app will not open. We save it and reply to the
-            address you enter.
+            Send a message from here — your email app will not open. You will get a confirmation at
+            the address you enter, and we will reply there too.
           </p>
         </header>
 

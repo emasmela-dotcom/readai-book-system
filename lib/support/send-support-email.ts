@@ -1,7 +1,7 @@
 import { Resend } from 'resend'
 import nodemailer from 'nodemailer'
 import { getGmailAppPassword } from '@/lib/support/gmail-credentials'
-import { getResendApiKey, getResendApiKeys } from '@/lib/support/resend-credentials'
+import { getResendApiKeys } from '@/lib/support/resend-credentials'
 import { gmailSenderAddress, SUPPORT_INBOX, supportFromAddress } from '@/lib/support/config'
 
 export type SupportEmailInput = {
@@ -19,6 +19,20 @@ function supportSubject(userEmail: string): string {
 
 function supportBody(userEmail: string, message: string): string {
   return `From: ${userEmail}\n\n${message}`
+}
+
+function confirmationSubject(): string {
+  return 'We received your ReadAI support message'
+}
+
+function confirmationBody(userEmail: string): string {
+  return `Hi,
+
+We got your message to ReadAI support. This email confirms it was received.
+
+We will reply to ${userEmail} as soon as we can. You do not need to send it again.
+
+— ReadAI Book Club`
 }
 
 async function sendViaResend(
@@ -94,4 +108,48 @@ export async function sendSupportEmail(input: SupportEmailInput): Promise<Suppor
   }
 
   return { ok: false, error: 'Support email is not configured on the server.' }
+}
+
+/** Auto-reply to the address the user entered on the support form. */
+export async function sendSupportConfirmationEmail(
+  input: SupportEmailInput,
+): Promise<SupportEmailResult> {
+  const resendKeys = await getResendApiKeys()
+  const gmailPass = await getGmailAppPassword()
+
+  for (const apiKey of resendKeys) {
+    const resend = new Resend(apiKey)
+    const { error } = await resend.emails.send({
+      from: supportFromAddress(),
+      to: input.email,
+      subject: confirmationSubject(),
+      text: confirmationBody(input.email),
+    })
+    if (!error) return { ok: true }
+    console.error('[support] resend confirmation error:', error)
+  }
+
+  if (gmailPass) {
+    const user = gmailSenderAddress()
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: { user, pass: gmailPass },
+    })
+    try {
+      await transporter.sendMail({
+        from: `ReadAI Support <${user}>`,
+        to: input.email,
+        subject: confirmationSubject(),
+        text: confirmationBody(input.email),
+      })
+      return { ok: true }
+    } catch (error) {
+      console.error('[support] gmail confirmation error:', error)
+      return { ok: false, error: 'Confirmation email failed.' }
+    }
+  }
+
+  return { ok: false, error: 'Confirmation email not configured.' }
 }
