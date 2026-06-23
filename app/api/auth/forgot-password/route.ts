@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { sendPasswordResetEmail } from '@/lib/auth/send-password-reset-email'
 import { createResetToken, hashResetToken, RESET_HOURS } from '@/lib/auth/reset-token'
 import { isValidEmail } from '@/lib/auth/password'
 import { sql } from '@/lib/db'
@@ -45,8 +46,10 @@ export async function POST(request: Request) {
         })
       }
 
-      // Production email delivery not configured yet.
-      console.info('[forgot-password] reset link for', email, resetUrl)
+      const sent = await sendPasswordResetEmail(email, resetUrl)
+      if (!sent.ok) {
+        console.error('[forgot-password] could not email reset link:', sent.error)
+      }
     }
 
     return NextResponse.json({
