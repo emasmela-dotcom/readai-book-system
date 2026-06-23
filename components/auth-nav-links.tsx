@@ -8,7 +8,7 @@ const linkClass = 'hover:text-[#c9a96e]'
 
 export function AuthNavLinks() {
   const pathname = usePathname()
-  const [email, setEmail] = useState<string | null>(null)
+  const [signedIn, setSignedIn] = useState(false)
   const [ready, setReady] = useState(false)
 
   const loadSession = useCallback(() => {
@@ -18,8 +18,8 @@ export function AuthNavLinks() {
         if (!res.ok) return null
         return res.json() as Promise<{ user?: { email?: string } | null }>
       })
-      .then((data) => setEmail(data?.user?.email ?? null))
-      .catch(() => setEmail(null))
+      .then((data) => setSignedIn(Boolean(data?.user?.email)))
+      .catch(() => setSignedIn(false))
       .finally(() => setReady(true))
   }, [])
 
@@ -29,7 +29,7 @@ export function AuthNavLinks() {
 
   async function signOut() {
     await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' })
-    setEmail(null)
+    setSignedIn(false)
     window.location.assign('/')
   }
 
@@ -37,20 +37,15 @@ export function AuthNavLinks() {
     return <span className="text-[#eadfce]/50">…</span>
   }
 
-  if (email) {
+  if (signedIn) {
     return (
-      <>
-        <span className="max-w-[9rem] truncate text-[#f5f2ed]" title={email}>
-          {email}
-        </span>
-        <button
-          type="button"
-          onClick={signOut}
-          className="border border-[#c9a96e]/60 px-2 py-1 text-[#c9a96e] hover:bg-[#c9a96e]/10"
-        >
-          Sign out
-        </button>
-      </>
+      <button
+        type="button"
+        onClick={signOut}
+        className="border border-[#c9a96e]/60 px-2 py-1 text-[#c9a96e] hover:bg-[#c9a96e]/10"
+      >
+        Sign out
+      </button>
     )
   }
 
