@@ -20,3 +20,7 @@ export async function fetchGenreAisleListings(): Promise<GenreAisleListing[]> {
     count: counts.get(aisle.id) ?? 0,
   }))
 }
+
+export function totalTitlesViaSources(listings: GenreAisleListing[]): number {
+  return listings.reduce((sum, listing) => sum + listing.count, 0)
+}

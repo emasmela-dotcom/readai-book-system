@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { GenreDirectoryGrid } from '@/components/genre-directory-grid'
-import { fetchGenreAisleListings } from '@/lib/genre-aisle-counts'
+import { fetchGenreAisleListings, totalTitlesViaSources } from '@/lib/genre-aisle-counts'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,6 +12,7 @@ export const metadata = {
 export default async function GenresPage() {
   const listings = await fetchGenreAisleListings()
   const sorted = [...listings].sort((a, b) => a.title.localeCompare(b.title))
+  const totalTitles = totalTitlesViaSources(listings)
 
   return (
     <main className="min-h-screen bg-[#0e0c0a] px-5 py-10 text-[#f5f2ed] md:px-8 md:py-14">
@@ -30,6 +31,9 @@ export default async function GenresPage() {
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-[#e8e4df]/80">
             Every room browses connected sources — Open Library, Gutenberg, and more. Pick a genre and
             follow the source links for each title.
+          </p>
+          <p className="mt-3 text-xs uppercase tracking-[0.2em] text-[#c9a96e]">
+            {totalTitles.toLocaleString()} titles via sources across {listings.length} rooms
           </p>
         </header>
 

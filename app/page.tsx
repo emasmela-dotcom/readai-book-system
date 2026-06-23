@@ -107,6 +107,10 @@ export default function ReadAIHome() {
     return [...genreListings].sort((a, b) => a.title.localeCompare(b.title))
   }, [genreListings])
 
+  const totalTitlesViaSources = useMemo(() => {
+    return genreListings.reduce((sum, section) => sum + section.count, 0)
+  }, [genreListings])
+
   const topRooms = useMemo(() => {
     return [...genreListings]
       .filter((section) => section.count > 0)
@@ -432,6 +436,12 @@ export default function ReadAIHome() {
             Every room browses connected sources — Open Library, Gutenberg, and more. Pick a genre below,
             or open the full room list.
           </p>
+          {!genresLoading && genreListings.length > 0 ? (
+            <p className="mt-3 text-xs uppercase tracking-[0.2em] text-[#c9a96e]">
+              {totalTitlesViaSources.toLocaleString()} titles via sources across {genreListings.length}{' '}
+              rooms
+            </p>
+          ) : null}
 
           <p className="mt-4">
             <Link
