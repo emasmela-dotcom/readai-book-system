@@ -2,6 +2,7 @@ import { openLibraryCoverIdUrl } from '@/lib/book-covers'
 import { resolveBookSourceHref } from '@/lib/book-sources'
 import type { BookstoreAisle } from '@/lib/bookstore-sections'
 import { getAisleById } from '@/lib/bookstore-sections'
+import { canOpenInReadAI } from '@/lib/public-domain-cutoff'
 
 /** Open Library subject slug for each reading room. */
 const GENRE_OPEN_LIBRARY_SUBJECTS: Record<string, string> = {
@@ -37,6 +38,7 @@ export type GenreSourceShelfBook = {
   title: string
   author: string | null
   coverUrl: string | null
+  openInReadAI: boolean
   readHref: string
   readLabel: string
   openLibraryHref: string
@@ -112,7 +114,7 @@ async function fetchGenreShelfFromSearch(
 ): Promise<{ total: number; books: GenreSourceShelfBook[] } | null> {
   try {
     const res = await fetch(
-      `https://openlibrary.org/search.json?q=subject:${encodeURIComponent(subject)}&limit=${limit}&offset=${offset}&fields=key,title,author_name,cover_i`,
+      `https://openlibrary.org/search.json?q=subject:${encodeURIComponent(subject)}&limit=${limit}&offset=${offset}&fields=key,title,author_name,cover_i,first_publish_year`,
       {
         cache: 'no-store',
         headers: OPEN_LIBRARY_HEADERS,
@@ -124,7 +126,13 @@ async function fetchGenreShelfFromSearch(
     const data = (await res.json()) as {
       num_found?: number
       numFound?: number
-      docs?: { key?: string; title?: string; author_name?: string[]; cover_i?: number }[]
+      docs?: {
+        key?: string
+        title?: string
+        author_name?: string[]
+        cover_i?: number
+        first_publish_year?: number
+      }[]
     }
 
     const books = (data.docs ?? [])
@@ -132,12 +140,15 @@ async function fetchGenreShelfFromSearch(
       .map((doc) => {
         const title = doc.title!.trim()
         const author = doc.author_name?.[0]?.trim() || null
+        const firstPublishYear =
+          typeof doc.first_publish_year === 'number' ? doc.first_publish_year : null
         const links = sourceLinksForWork(title, author)
         return {
           key: doc.key!,
           title,
           author,
           coverUrl: doc.cover_i ? openLibraryCoverIdUrl(doc.cover_i) : null,
+          openInReadAI: canOpenInReadAI(firstPublishYear),
           ...links,
         }
       })
@@ -214,6 +225,7 @@ function mapSubjectResponse(data: OpenLibrarySubjectResponse): {
         title,
         author,
         coverUrl: work.cover_id ? openLibraryCoverIdUrl(work.cover_id) : null,
+        openInReadAI: true,
         ...links,
       }
     })

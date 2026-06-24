@@ -259,8 +259,7 @@ type CatalogHint = {
   verifyHref: string
 }
 
-/** U.S. works published before this year are generally public domain (verify locally for your use). */
-const US_PUBLIC_DOMAIN_CUTOFF_YEAR = 1929
+import { US_PUBLIC_DOMAIN_CUTOFF_YEAR } from '@/lib/public-domain-cutoff'
 
 function copyrightNoticeForHint(hint: CatalogHint): string {
   const year = hint.firstPublishYear

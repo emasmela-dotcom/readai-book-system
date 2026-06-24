@@ -1,5 +1,4 @@
 import { ensureClubReadableBookWithStatus } from '@/lib/ensure-club-readable'
-import { resolveBookSourceHref } from '@/lib/book-sources'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 
@@ -26,14 +25,14 @@ export default async function OpenBookPage({
   const result = await ensureClubReadableBookWithStatus(title, author)
   if (result.status === 'ready') redirect(`/books/${result.bookId}/read`)
 
+  if (result.status === 'copyrighted') {
+    redirect('/genres')
+  }
+
   const retryHref = `/books/open?${new URLSearchParams({
     title,
     ...(author ? { author } : {}),
   }).toString()}`
-
-  if (result.status === 'copyrighted') {
-    redirect(resolveBookSourceHref('open-library', { title, author: author ?? '' }))
-  }
 
   return (
     <main className="min-h-screen bg-[#0e0c0a] px-5 py-10 text-[#f5f2ed] md:px-8 md:py-14">
