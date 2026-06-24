@@ -3,12 +3,12 @@ import { findQueuedClubBook, markClubBookImported, queueClubBookImport } from '@
 import { normalisePhrase, primaryTitleForMatch, significantTitleTokens } from '@/lib/book-search'
 import { fetchGutendexBookById } from '@/lib/gutenberg'
 import { CURATED_GUTENBERG, importGutenbergBookByGutendex } from '@/lib/gutenberg-ingest'
+import { openSearchTitles } from '@/lib/open-search-titles'
 import { resolveClubBookByQuery } from '@/lib/resolve-club-book'
 
 export type EnsureClubBookResult =
   | { status: 'ready'; bookId: number }
   | { status: 'loading'; title: string; author: string | null }
-  | { status: 'sources_only'; title: string; author: string | null }
 
 function matchCuratedGutenbergId(title: string): number | null {
   const primary = normalisePhrase(primaryTitleForMatch(title))
@@ -98,15 +98,16 @@ export async function ensureClubReadableBookWithStatus(
   author: string | null,
 ): Promise<EnsureClubBookResult> {
   const trimmedTitle = title.trim()
-  if (!trimmedTitle) return { status: 'sources_only', title: trimmedTitle, author }
+  if (!trimmedTitle) {
+    return { status: 'loading', title: trimmedTitle, author }
+  }
 
   const queued = await findQueuedClubBook(trimmedTitle, author)
   if (queued?.status === 'imported' && queued.bookId) {
     return { status: 'ready', bookId: queued.bookId }
   }
 
-  const primaryTitle = primaryTitleForMatch(trimmedTitle)
-  const searchTitles = [...new Set([trimmedTitle, primaryTitle].filter(Boolean))]
+  const searchTitles = openSearchTitles(trimmedTitle)
 
   for (const searchTitle of searchTitles) {
     const bookId = await tryImportTitle(searchTitle, author)
@@ -116,24 +117,12 @@ export async function ensureClubReadableBookWithStatus(
     }
   }
 
-  const hasPublicDomainSignal =
-    matchCuratedGutenbergId(trimmedTitle) != null ||
-    (await resolveGutenbergReadableMatch(
-      [primaryTitle, author?.trim()].filter(Boolean).join(' '),
-      primaryTitle,
-      author?.trim() ?? '',
-      15_000,
-    )) != null
+  await queueClubBookImport({
+    title: trimmedTitle,
+    author,
+    gutenbergId: matchCuratedGutenbergId(trimmedTitle),
+    status: 'pending',
+  })
 
-  if (hasPublicDomainSignal) {
-    await queueClubBookImport({
-      title: trimmedTitle,
-      author,
-      gutenbergId: matchCuratedGutenbergId(trimmedTitle),
-      status: 'pending',
-    })
-    return { status: 'loading', title: trimmedTitle, author }
-  }
-
-  return { status: 'sources_only', title: trimmedTitle, author }
+  return { status: 'loading', title: trimmedTitle, author }
 }
