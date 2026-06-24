@@ -64,6 +64,23 @@ export function normalisePhrase(input: string): string {
   return input.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
+/** Strip Open Library subtitles — "Twelfth Night, or What You Will" → "Twelfth Night". */
+export function primaryTitleForMatch(title: string): string {
+  const trimmed = title.trim()
+  const comma = trimmed.indexOf(',')
+  if (comma > 0) return trimmed.slice(0, comma).trim()
+  const semi = trimmed.indexOf(';')
+  if (semi > 0) return trimmed.slice(0, semi).trim()
+  return trimmed
+}
+
+export function titleSearchVariants(title: string): string[] {
+  const trimmed = title.trim()
+  if (!trimmed) return []
+  const primary = primaryTitleForMatch(trimmed)
+  return [...new Set([trimmed, primary].filter(Boolean))]
+}
+
 export function exactPhraseVariants(raw: string): string[] {
   const normalised = normalisePhrase(raw)
   const tokens = tokeniseSearch(raw)

@@ -1,6 +1,6 @@
 import { buildReadableSourceLinks, resolveBookSourceHref, type BookSourceLink } from '@/lib/book-sources'
 import { clubOpenHref } from '@/lib/ensure-club-readable'
-import { normalisePhrase, parseTitleAuthorQuery, significantTitleTokens, titleTokenCounts } from '@/lib/book-search'
+import { normalisePhrase, parseTitleAuthorQuery, primaryTitleForMatch, significantTitleTokens, titleSearchVariants } from '@/lib/book-search'
 import { buildClubSearchGuide, buildClubPicksGuide, buildFallbackPickGuide, type ClubSearchGuide } from '@/lib/club-search-guide'
 import { getDailyClubReadableMatches } from '@/lib/daily-club-picks'
 import {
@@ -58,35 +58,34 @@ function titleMatchesQuery(query: string, titlePart: string, bookTitle: string):
   const book = normalisePhrase(bookTitle)
   if (!book) return false
 
-  const candidates = [query, titlePart].map((part) => normalisePhrase(part)).filter(Boolean)
-  for (const candidate of candidates) {
+  const variants = [...new Set([...titleSearchVariants(titlePart), ...titleSearchVariants(query)])]
+
+  for (const variant of variants) {
+    const candidate = normalisePhrase(variant)
+    if (!candidate) continue
     if (book === candidate) return true
     if (candidate.length >= 8 && book.startsWith(candidate)) return true
     if (book.length >= 8 && candidate.startsWith(book)) return true
   }
 
-  const queryTokens = significantTitleTokens(titlePart || query)
-  if (queryTokens.length === 0) return false
+  for (const variant of variants) {
+    const queryTokens = significantTitleTokens(variant)
+    if (queryTokens.length === 0) continue
 
-  const bookTokens = significantTitleTokens(bookTitle)
-  const queryCounts = titleTokenCounts(queryTokens)
-  const bookCounts = titleTokenCounts(bookTokens)
+    const bookTokens = significantTitleTokens(bookTitle)
+    if (bookTokens.length === 0) continue
 
-  for (const [token, need] of queryCounts) {
-    if ((bookCounts.get(token) ?? 0) < need) return false
-  }
-
-  if (queryTokens.length >= 2) {
-    const uniqueQuery = new Set(queryTokens)
     const bookTokenSet = new Set(bookTokens)
     let shared = 0
-    for (const token of uniqueQuery) {
+    for (const token of queryTokens) {
       if (bookTokenSet.has(token)) shared += 1
     }
-    if (shared / uniqueQuery.size < 0.75) return false
+
+    if (shared >= Math.min(queryTokens.length, bookTokens.length)) return true
+    if (queryTokens.length >= 2 && shared / queryTokens.length >= 0.75) return true
   }
 
-  return true
+  return false
 }
 
 function normalisedTitlesAlign(a: string, b: string): boolean {
@@ -164,9 +163,16 @@ export async function resolveGutenbergReadableMatch(
   authorPart: string,
   timeoutMs = 10_000,
 ): Promise<SourceSearchMatch | null> {
+  const primaryTitle = primaryTitleForMatch(titlePart)
   const terms = [
     ...new Set(
-      [query, titlePart, `${titlePart} ${authorPart}`.trim()].filter((term) => term.trim().length > 0),
+      [
+        query,
+        titlePart,
+        primaryTitle,
+        `${titlePart} ${authorPart}`.trim(),
+        `${primaryTitle} ${authorPart}`.trim(),
+      ].filter((term) => term.trim().length > 0),
     ),
   ]
 

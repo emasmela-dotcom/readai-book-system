@@ -1,4 +1,5 @@
 import { resolveGutenbergReadableMatch } from '@/lib/club-search'
+import { primaryTitleForMatch } from '@/lib/book-search'
 import { fetchGutendexBookById } from '@/lib/gutenberg'
 import { importGutenbergBookByGutendex } from '@/lib/gutenberg-ingest'
 import { resolveClubBookByQuery } from '@/lib/resolve-club-book'
@@ -16,26 +17,33 @@ export async function ensureClubReadableBook(
   const trimmedTitle = title.trim()
   if (!trimmedTitle) return null
 
-  const query = [trimmedTitle, author?.trim()].filter(Boolean).join(' ')
-  const existing = await resolveClubBookByQuery(query)
-  if (existing) return { id: existing.id }
+  const primaryTitle = primaryTitleForMatch(trimmedTitle)
+  const searchTitles = [...new Set([trimmedTitle, primaryTitle].filter(Boolean))]
 
-  const gutenbergMatch = await resolveGutenbergReadableMatch(
-    query,
-    trimmedTitle,
-    author?.trim() ?? '',
-    12_000,
-  )
-  if (!gutenbergMatch) return null
+  for (const searchTitle of searchTitles) {
+    const query = [searchTitle, author?.trim()].filter(Boolean).join(' ')
+    const existing = await resolveClubBookByQuery(query)
+    if (existing) return { id: existing.id }
 
-  if (gutenbergMatch.bookId) return { id: gutenbergMatch.bookId }
+    const gutenbergMatch = await resolveGutenbergReadableMatch(
+      query,
+      searchTitle,
+      author?.trim() ?? '',
+      12_000,
+    )
+    if (!gutenbergMatch) continue
 
-  const fullBook = await fetchGutendexBookById(gutenbergMatch.gutenbergId)
-  if (!fullBook) return null
+    if (gutenbergMatch.bookId) return { id: gutenbergMatch.bookId }
 
-  const importedId = await importGutenbergBookByGutendex(fullBook)
-  if (importedId) return { id: importedId }
+    const fullBook = await fetchGutendexBookById(gutenbergMatch.gutenbergId)
+    if (!fullBook) continue
 
-  const afterImport = await resolveClubBookByQuery(query)
-  return afterImport ? { id: afterImport.id } : null
+    const importedId = await importGutenbergBookByGutendex(fullBook)
+    if (importedId) return { id: importedId }
+
+    const afterImport = await resolveClubBookByQuery(query)
+    if (afterImport) return { id: afterImport.id }
+  }
+
+  return null
 }
