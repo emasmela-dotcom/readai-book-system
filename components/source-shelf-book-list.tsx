@@ -50,19 +50,19 @@ export function SourceShelfBookList({
                 ) : null}
                 <div className="flex flex-wrap gap-3 text-xs text-[#eadfce]">
                   <Link
-                    href={clubHref}
-                    className="uppercase tracking-[0.15em] text-[#c9a96e] hover:underline"
-                  >
-                    Read in club
-                  </Link>
-                  <a
                     href={book.openLibraryHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="uppercase tracking-[0.15em] text-[#eadfce]/80 hover:text-[#c9a96e] hover:underline"
+                    className="uppercase tracking-[0.15em] text-[#c9a96e] hover:underline"
                   >
                     {book.openLibraryLabel}
-                  </a>
+                  </Link>
+                  <Link
+                    href={clubHref}
+                    className="uppercase tracking-[0.15em] text-[#eadfce]/80 hover:text-[#c9a96e] hover:underline"
+                  >
+                    Open in ReadAI
+                  </Link>
                   <a
                     href={book.readHref}
                     target="_blank"
