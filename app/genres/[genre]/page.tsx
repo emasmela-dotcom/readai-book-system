@@ -82,11 +82,10 @@ export default async function GenrePage({
             <span className="font-serif text-2xl text-[#c9a96e] tabular-nums">
               {sourceShelf.total > 0 ? sourceShelf.total.toLocaleString() : '—'}
             </span>{' '}
-            titles via connected sources
+            titles you can read in ReadAI
           </p>
           <p className="mt-2 text-xs text-[#eadfce]/80">
-            Tap a title to open the full read in ReadAI when it is public domain. Source links are
-            optional extras.
+            Every title here opens in ReadAI. Search on the home page finds newer books too.
           </p>
           {browseLinks.length > 0 ? (
             <ul className="mt-4 flex flex-wrap gap-3">
