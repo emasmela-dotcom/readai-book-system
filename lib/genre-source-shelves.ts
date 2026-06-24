@@ -101,41 +101,29 @@ function sourceLinksForWork(
   }
 }
 
-export async function fetchGenreSourceShelf(
-  aisleId: string,
+const OPEN_LIBRARY_HEADERS = { 'User-Agent': 'ReadAI-Book-Club/1.0' }
+const OPEN_LIBRARY_SEARCH_TIMEOUT_MS = 15_000
+const OPEN_LIBRARY_SUBJECT_TIMEOUT_MS = 8_000
+
+async function fetchGenreShelfFromSearch(
+  subject: string,
   limit: number,
   offset: number,
-): Promise<{ total: number; books: GenreSourceShelfBook[] }> {
-  const subject = getGenreOpenLibrarySubject(aisleId)
-  if (!subject) {
-    return { total: 0, books: [] }
-  }
-
-  const headers = { 'User-Agent': 'ReadAI-Book-Club/1.0' }
-
-  try {
-    const res = await fetch(
-      `https://openlibrary.org/subjects/${subject}.json?limit=${limit}&offset=${offset}`,
-      { cache: 'no-store', headers },
-    )
-
-    if (res.ok) {
-      const data = (await res.json()) as OpenLibrarySubjectResponse
-      return mapSubjectResponse(data)
-    }
-  } catch {
-    // fall through to search fallback
-  }
-
+): Promise<{ total: number; books: GenreSourceShelfBook[] } | null> {
   try {
     const res = await fetch(
       `https://openlibrary.org/search.json?q=subject:${encodeURIComponent(subject)}&limit=${limit}&offset=${offset}&fields=key,title,author_name,cover_i`,
-      { cache: 'no-store', headers },
+      {
+        cache: 'no-store',
+        headers: OPEN_LIBRARY_HEADERS,
+        signal: AbortSignal.timeout(OPEN_LIBRARY_SEARCH_TIMEOUT_MS),
+      },
     )
-    if (!res.ok) return { total: 0, books: [] }
+    if (!res.ok) return null
 
     const data = (await res.json()) as {
       num_found?: number
+      numFound?: number
       docs?: { key?: string; title?: string; author_name?: string[]; cover_i?: number }[]
     }
 
@@ -154,10 +142,60 @@ export async function fetchGenreSourceShelf(
         }
       })
 
-    return { total: data.num_found ?? books.length, books }
+    if (books.length === 0) return null
+
+    return {
+      total: data.num_found ?? data.numFound ?? books.length,
+      books,
+    }
   } catch {
+    return null
+  }
+}
+
+async function fetchGenreShelfFromSubject(
+  subject: string,
+  limit: number,
+  offset: number,
+): Promise<{ total: number; books: GenreSourceShelfBook[] } | null> {
+  try {
+    const res = await fetch(
+      `https://openlibrary.org/subjects/${subject}.json?limit=${limit}&offset=${offset}`,
+      {
+        cache: 'no-store',
+        headers: OPEN_LIBRARY_HEADERS,
+        signal: AbortSignal.timeout(OPEN_LIBRARY_SUBJECT_TIMEOUT_MS),
+      },
+    )
+
+    if (!res.ok) return null
+
+    const data = (await res.json()) as OpenLibrarySubjectResponse
+    const mapped = mapSubjectResponse(data)
+    if (mapped.books.length === 0) return null
+    return mapped
+  } catch {
+    return null
+  }
+}
+
+export async function fetchGenreSourceShelf(
+  aisleId: string,
+  limit: number,
+  offset: number,
+): Promise<{ total: number; books: GenreSourceShelfBook[] }> {
+  const subject = getGenreOpenLibrarySubject(aisleId)
+  if (!subject) {
     return { total: 0, books: [] }
   }
+
+  const fromSearch = await fetchGenreShelfFromSearch(subject, limit, offset)
+  if (fromSearch) return fromSearch
+
+  const fromSubject = await fetchGenreShelfFromSubject(subject, limit, offset)
+  if (fromSubject) return fromSubject
+
+  return { total: 0, books: [] }
 }
 
 function mapSubjectResponse(data: OpenLibrarySubjectResponse): {
@@ -187,29 +225,33 @@ export async function fetchGenreSourceCount(aisleId: string): Promise<number> {
   const subject = getGenreOpenLibrarySubject(aisleId)
   if (!subject) return 0
 
-  const headers = { 'User-Agent': 'ReadAI-Book-Club/1.0' }
+  try {
+    const res = await fetch(
+      `https://openlibrary.org/search.json?q=subject:${encodeURIComponent(subject)}&limit=1&fields=key`,
+      {
+        next: { revalidate: 3600 },
+        headers: OPEN_LIBRARY_HEADERS,
+        signal: AbortSignal.timeout(OPEN_LIBRARY_SEARCH_TIMEOUT_MS),
+      },
+    )
+    if (res.ok) {
+      const data = (await res.json()) as { num_found?: number; numFound?: number }
+      const count = data.num_found ?? data.numFound
+      if (typeof count === 'number') return count
+    }
+  } catch {
+    // fall through to subject count
+  }
 
   try {
     const res = await fetch(`https://openlibrary.org/subjects/${subject}.json?limit=1`, {
       next: { revalidate: 3600 },
-      headers,
+      headers: OPEN_LIBRARY_HEADERS,
+      signal: AbortSignal.timeout(OPEN_LIBRARY_SUBJECT_TIMEOUT_MS),
     })
     if (res.ok) {
       const data = (await res.json()) as OpenLibrarySubjectResponse
       if (typeof data.work_count === 'number') return data.work_count
-    }
-  } catch {
-    // fall through to search count
-  }
-
-  try {
-    const res = await fetch(
-      `https://openlibrary.org/search.json?q=subject:${encodeURIComponent(subject)}&limit=1&fields=key`,
-      { next: { revalidate: 3600 }, headers },
-    )
-    if (res.ok) {
-      const data = (await res.json()) as { num_found?: number }
-      if (typeof data.num_found === 'number') return data.num_found
     }
   } catch {
     // no count available
