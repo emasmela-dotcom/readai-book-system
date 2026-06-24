@@ -35,27 +35,6 @@ export default async function GenrePage({
   const aisle = getAisleById(resolvedParams.genre)
   if (!aisle) notFound()
 
-  if (aisle.id === 'movie-books') {
-    return (
-      <main className="min-h-screen bg-[#0e0c0a] px-5 py-10 text-[#e8e4df] md:px-8 md:py-14">
-        <div className="mx-auto max-w-6xl">
-          <Link href="/genres" className="text-xs uppercase tracking-[0.2em] text-[#c9a96e] hover:underline">
-            Back to all rooms
-          </Link>
-          <h1 className="mt-3 font-serif text-4xl text-[#f5f2ed] md:text-5xl">{aisle.title}</h1>
-          <p className="mt-3 max-w-2xl text-sm text-[#e8e4df]/70 md:text-base">{aisle.tagline}</p>
-          <p className="mt-6 text-sm text-[#e8e4df]/80">
-            Film tie-in books live in the{' '}
-            <Link href="/movies" className="text-[#c9a96e] hover:underline">
-              Movies &amp; movie books
-            </Link>{' '}
-            room.
-          </p>
-        </div>
-      </main>
-    )
-  }
-
   if (!genreAisleHasSourceShelf(aisle.id)) {
     return (
       <main className="min-h-screen bg-[#0e0c0a] px-5 py-10 text-[#e8e4df] md:px-8 md:py-14">
