@@ -6,9 +6,11 @@ import { useState } from 'react'
 export function SubscribeCheckout({
   signedIn,
   stripeReady,
+  onProduction = false,
 }: {
   signedIn: boolean
   stripeReady: boolean
+  onProduction?: boolean
 }) {
   const searchParams = useSearchParams()
   const [loadingPlan, setLoadingPlan] = useState<'monthly' | 'yearly' | null>(null)
@@ -68,8 +70,14 @@ export function SubscribeCheckout({
   if (!stripeReady) {
     return (
       <p className="text-sm text-[#eadfce]">
-        Add <span className="text-[#f5f2ed]">STRIPE_SECRET_KEY</span> to your local{' '}
-        <span className="text-[#f5f2ed]">.env</span> to enable checkout.
+        {onProduction
+          ? 'Checkout is not available yet. Stripe keys may need a redeploy in Vercel — contact support if this persists.'
+          : (
+              <>
+                Add <span className="text-[#f5f2ed]">STRIPE_SECRET_KEY</span> to your local{' '}
+                <span className="text-[#f5f2ed]">.env</span> to enable checkout.
+              </>
+            )}
       </p>
     )
   }

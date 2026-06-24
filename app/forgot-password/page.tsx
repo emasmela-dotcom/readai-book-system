@@ -20,8 +20,7 @@ export default function ForgotPasswordPage() {
           <p className="text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Account recovery</p>
           <h1 className="mt-2 font-serif text-3xl text-[#f5f2ed]">Forgot password</h1>
           <p className="mt-3 text-sm leading-relaxed text-[#eadfce]">
-            Enter the email on your account. On local dev, your reset link appears on this page
-            after you submit.
+            Enter the email on your account. We will email you a reset link (expires in 1 hour).
           </p>
         </header>
 

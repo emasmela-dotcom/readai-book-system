@@ -21,6 +21,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/home-covers',
   '/api/book-count',
   '/api/book-cover/',
+  '/api/stripe/config-check',
 ]
 
 export function isPublicPath(pathname: string): boolean {

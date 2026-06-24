@@ -5,6 +5,8 @@ import { trialDaysLeft } from '@/lib/auth/access'
 import { getSessionUser } from '@/lib/auth/session'
 import { isStripeConfigured } from '@/lib/stripe/client'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Subscribe | ReadAI',
   description: 'Subscribe to continue reading on ReadAI Book Club.',
@@ -48,7 +50,11 @@ export default async function SubscribePage() {
           ) : null}
 
           <Suspense fallback={<p className="text-sm text-[#eadfce]">Loading checkout…</p>}>
-            <SubscribeCheckout signedIn={Boolean(user)} stripeReady={stripeReady} />
+            <SubscribeCheckout
+              signedIn={Boolean(user)}
+              stripeReady={stripeReady}
+              onProduction={Boolean(process.env.VERCEL)}
+            />
           </Suspense>
         </div>
       </div>
