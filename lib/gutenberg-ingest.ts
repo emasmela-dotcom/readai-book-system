@@ -295,7 +295,10 @@ export async function importGutenbergBookByGutendex(book: GutendexBook): Promise
       return (rows[0]?.id as number | undefined) ?? null
     }
 
-    const bodyText = await downloadPlainText(book.formats)
+    let bodyText = await downloadPlainText(book.formats)
+    if (!isFullBookText(bodyText)) {
+      bodyText = await downloadGutenbergCacheText(book.id)
+    }
     if (!isFullBookText(bodyText)) return null
 
     const inserted = await insertFullBook(book, bodyText!)

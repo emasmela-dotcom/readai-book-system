@@ -1,4 +1,4 @@
-import { ensureClubReadableBook } from '@/lib/ensure-club-readable'
+import { ensureClubReadableBookWithStatus } from '@/lib/ensure-club-readable'
 import { buildReadableSourceLinks } from '@/lib/book-sources'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
@@ -23,20 +23,46 @@ export default async function OpenBookPage({
 
   if (!title) notFound()
 
-  const book = await ensureClubReadableBook(title, author)
-  if (book) redirect(`/books/${book.id}/read`)
+  const result = await ensureClubReadableBookWithStatus(title, author)
+  if (result.status === 'ready') redirect(`/books/${result.bookId}/read`)
 
   const sourceLinks = buildReadableSourceLinks({ title, author: author ?? '' })
+  const retryHref = `/books/open?${new URLSearchParams({
+    title,
+    ...(author ? { author } : {}),
+  }).toString()}`
+
+  if (result.status === 'adding') {
+    return (
+      <main className="min-h-screen bg-[#0e0c0a] px-5 py-10 text-[#f5f2ed] md:px-8 md:py-14">
+        <div className="mx-auto max-w-lg">
+          <p className="text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Adding to the club</p>
+          <h1 className="mt-2 font-serif text-2xl text-[#f5f2ed]">{title}</h1>
+          {author ? <p className="mt-2 text-sm text-[#eadfce]">by {author}</p> : null}
+          <p className="mt-4 text-sm leading-relaxed text-[#eadfce]">
+            This is a public-domain title. ReadAI is loading it into the club now — refresh in a few
+            seconds and it should open here.
+          </p>
+          <p className="mt-6">
+            <Link href={retryHref} className="text-sm text-[#c9a96e] hover:underline">
+              Try again now →
+            </Link>
+          </p>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen bg-[#0e0c0a] px-5 py-10 text-[#f5f2ed] md:px-8 md:py-14">
       <div className="mx-auto max-w-lg">
-        <p className="text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Not in club yet</p>
+        <p className="text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Not in club</p>
         <h1 className="mt-2 font-serif text-2xl text-[#f5f2ed]">{title}</h1>
         {author ? <p className="mt-2 text-sm text-[#eadfce]">by {author}</p> : null}
         <p className="mt-4 text-sm leading-relaxed text-[#eadfce]">
-          ReadAI could not load a full in-app read for this title. It may be under copyright, or not
-          in our public-domain catalog yet. Try a connected source below.
+          This title is not available for a full read in ReadAI while it is under copyright. Use a
+          connected source below. Public-domain books are added to the club automatically when we can
+          load them.
         </p>
         <ul className="mt-6 space-y-3">
           {sourceLinks.map((source) => (
