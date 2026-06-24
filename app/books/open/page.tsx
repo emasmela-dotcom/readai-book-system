@@ -26,22 +26,21 @@ export default async function OpenBookPage({
   const result = await ensureClubReadableBookWithStatus(title, author)
   if (result.status === 'ready') redirect(`/books/${result.bookId}/read`)
 
-  const sourceLinks = buildReadableSourceLinks({ title, author: author ?? '' })
   const retryHref = `/books/open?${new URLSearchParams({
     title,
     ...(author ? { author } : {}),
   }).toString()}`
 
-  if (result.status === 'adding') {
+  if (result.status === 'loading') {
     return (
       <main className="min-h-screen bg-[#0e0c0a] px-5 py-10 text-[#f5f2ed] md:px-8 md:py-14">
         <div className="mx-auto max-w-lg">
-          <p className="text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Adding to the club</p>
+          <p className="text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Opening book</p>
           <h1 className="mt-2 font-serif text-2xl text-[#f5f2ed]">{title}</h1>
           {author ? <p className="mt-2 text-sm text-[#eadfce]">by {author}</p> : null}
           <p className="mt-4 text-sm leading-relaxed text-[#eadfce]">
-            This is a public-domain title. ReadAI is loading it into the club now — refresh in a few
-            seconds and it should open here.
+            ReadAI is loading this public-domain book now. Tap try again — it usually opens in a few
+            seconds.
           </p>
           <p className="mt-6">
             <Link href={retryHref} className="text-sm text-[#c9a96e] hover:underline">
@@ -53,16 +52,17 @@ export default async function OpenBookPage({
     )
   }
 
+  const sourceLinks = buildReadableSourceLinks({ title, author: author ?? '' })
+
   return (
     <main className="min-h-screen bg-[#0e0c0a] px-5 py-10 text-[#f5f2ed] md:px-8 md:py-14">
       <div className="mx-auto max-w-lg">
-        <p className="text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Not in club</p>
+        <p className="text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Read through sources</p>
         <h1 className="mt-2 font-serif text-2xl text-[#f5f2ed]">{title}</h1>
         {author ? <p className="mt-2 text-sm text-[#eadfce]">by {author}</p> : null}
         <p className="mt-4 text-sm leading-relaxed text-[#eadfce]">
-          This title is not available for a full read in ReadAI while it is under copyright. Use a
-          connected source below. Public-domain books are added to the club automatically when we can
-          load them.
+          ReadAI does not host a full-text edition of this title right now — often because it is still
+          under copyright. You can still find it through the legal sources below.
         </p>
         <ul className="mt-6 space-y-3">
           {sourceLinks.map((source) => (

@@ -10,6 +10,7 @@ import { GenreDirectoryGrid } from '@/components/genre-directory-grid'
 import { AuthNavLinks } from '@/components/auth-nav-links'
 import { ClubSearchBookCard, type ClubSearchBook } from '@/components/club-search-book-card'
 import { sourceAccessLabel } from '@/lib/book-sources'
+import { clubOpenHref } from '@/lib/club-open-href'
 import { FEATURED_FILMS } from '@/lib/movie-sources'
 
 const FEATURED_FILM_COUNT = FEATURED_FILMS.length
@@ -344,7 +345,9 @@ export default function ReadAIHome() {
                   ) : sourceSearch.catalogHint ? (
                     <div className="border border-white/15 bg-[#171311] p-4">
                       <p className="text-[10px] uppercase tracking-[0.2em] text-[#c9a96e]">
-                        No free full read here
+                        {sourceSearch.unavailableReason === 'not_found'
+                          ? 'Likely public domain'
+                          : 'No free full read here'}
                       </p>
                       <p className="mt-2 font-serif text-lg text-[#f5f2ed]">
                         {sourceSearch.catalogHint.title}
@@ -361,6 +364,19 @@ export default function ReadAIHome() {
                       <p className="mt-3 text-sm leading-relaxed text-[#eadfce]">
                         {sourceSearch.unavailableNote}
                       </p>
+                      {sourceSearch.unavailableReason === 'not_found' ? (
+                        <p className="mt-4">
+                          <Link
+                            href={clubOpenHref(
+                              sourceSearch.catalogHint.title,
+                              sourceSearch.catalogHint.author,
+                            )}
+                            className="text-[10px] uppercase tracking-wider text-[#c9a96e] hover:underline"
+                          >
+                            Open in ReadAI →
+                          </Link>
+                        </p>
+                      ) : null}
                     </div>
                   ) : sourceSearch.unavailableNote ? (
                     <p className="text-sm leading-relaxed text-[#eadfce]">{sourceSearch.unavailableNote}</p>

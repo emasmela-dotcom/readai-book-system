@@ -1,5 +1,5 @@
 import { buildReadableSourceLinks, resolveBookSourceHref, type BookSourceLink } from '@/lib/book-sources'
-import { clubOpenHref } from '@/lib/ensure-club-readable'
+import { clubOpenHref } from '@/lib/club-open-href'
 import { normalisePhrase, parseTitleAuthorQuery, primaryTitleForMatch, significantTitleTokens, titleSearchVariants } from '@/lib/book-search'
 import { buildClubSearchGuide, buildClubPicksGuide, buildFallbackPickGuide, type ClubSearchGuide } from '@/lib/club-search-guide'
 import { getDailyClubReadableMatches } from '@/lib/daily-club-picks'
@@ -268,7 +268,7 @@ function copyrightNoticeForHint(hint: CatalogHint): string {
     return `First published ${year}. Works this recent are usually still under copyright. ReadAI only lists public-domain books you can read in full.`
   }
   if (year != null && year < US_PUBLIC_DOMAIN_CUTOFF_YEAR) {
-    return `First published ${year}. This older title may be public domain, but ReadAI has no full free read for it on Project Gutenberg yet.`
+    return `First published ${year}. This title is likely public domain. Tap Open in ReadAI below — we load full-text editions when available.`
   }
   return `This title appears in library catalogs. Recent works are usually still under copyright. ReadAI only lists public-domain books you can read in full.`
 }

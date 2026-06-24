@@ -5,7 +5,7 @@ import {
   resolveBestCoverUrl,
 } from '@/lib/book-covers'
 import { sql } from '@/lib/db'
-import { clubOpenHref } from '@/lib/ensure-club-readable'
+import { clubOpenHref } from '@/lib/club-open-href'
 import {
   fetchGutendexPage,
   fetchGutendexSearch,

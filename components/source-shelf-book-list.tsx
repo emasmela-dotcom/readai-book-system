@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { BookCoverImage } from '@/components/book-cover-image'
 import { BOOK_COVER_THUMB_BOX_CLASS, BOOK_COVER_THUMB_CLASS } from '@/lib/book-cover-size'
 import { hasRealCoverUrl } from '@/lib/book-covers'
-import { clubOpenHref } from '@/lib/ensure-club-readable'
+import { clubOpenHref } from '@/lib/club-open-href'
 import type { GenreSourceShelfBook } from '@/lib/genre-source-shelves'
 
 export function SourceShelfBookList({
