@@ -1,4 +1,5 @@
 import { buildReadableSourceLinks, resolveBookSourceHref, type BookSourceLink } from '@/lib/book-sources'
+import { clubOpenHref } from '@/lib/ensure-club-readable'
 import { normalisePhrase, parseTitleAuthorQuery, significantTitleTokens, titleTokenCounts } from '@/lib/book-search'
 import { buildClubSearchGuide, buildClubPicksGuide, buildFallbackPickGuide, type ClubSearchGuide } from '@/lib/club-search-guide'
 import { getDailyClubReadableMatches } from '@/lib/daily-club-picks'
@@ -194,8 +195,8 @@ export async function resolveGutenbergReadableMatch(
     author,
     coverUrl,
     gutenbergId,
-    readHref: `https://www.gutenberg.org/ebooks/${gutenbergId}`,
-    sourceLabel: 'Project Gutenberg · full read',
+    readHref: clubOpenHref(title, author),
+    sourceLabel: 'ReadAI · full read',
     bookId: null,
   }
 }

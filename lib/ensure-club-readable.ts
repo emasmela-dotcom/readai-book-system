@@ -3,6 +3,12 @@ import { fetchGutendexBookById } from '@/lib/gutenberg'
 import { importGutenbergBookByGutendex } from '@/lib/gutenberg-ingest'
 import { resolveClubBookByQuery } from '@/lib/resolve-club-book'
 
+export function clubOpenHref(title: string, author: string | null): string {
+  const params = new URLSearchParams({ title })
+  if (author?.trim()) params.set('author', author.trim())
+  return `/books/open?${params.toString()}`
+}
+
 export async function ensureClubReadableBook(
   title: string,
   author: string | null,

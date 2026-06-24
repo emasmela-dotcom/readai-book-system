@@ -5,6 +5,7 @@ import {
   resolveBestCoverUrl,
 } from '@/lib/book-covers'
 import { sql } from '@/lib/db'
+import { clubOpenHref } from '@/lib/ensure-club-readable'
 import {
   fetchGutendexPage,
   fetchGutendexSearch,
@@ -286,8 +287,8 @@ async function resolveReadableMatches(seeds: DailyPickSeed[]): Promise<DailyRead
       author,
       coverUrl,
       gutenbergId: seed.gutenbergId,
-      readHref: `https://www.gutenberg.org/ebooks/${seed.gutenbergId}`,
-      sourceLabel: 'Project Gutenberg · full read',
+      readHref: clubOpenHref(title, author),
+      sourceLabel: 'ReadAI · full read',
       bookId: null,
     }
   })

@@ -2,13 +2,8 @@ import Link from 'next/link'
 import { BookCoverImage } from '@/components/book-cover-image'
 import { BOOK_COVER_THUMB_BOX_CLASS, BOOK_COVER_THUMB_CLASS } from '@/lib/book-cover-size'
 import { hasRealCoverUrl } from '@/lib/book-covers'
+import { clubOpenHref } from '@/lib/ensure-club-readable'
 import type { GenreSourceShelfBook } from '@/lib/genre-source-shelves'
-
-function openInClubHref(title: string, author: string | null): string {
-  const params = new URLSearchParams({ title })
-  if (author) params.set('author', author)
-  return `/books/open?${params.toString()}`
-}
 
 export function SourceShelfBookList({
   books,
@@ -22,7 +17,7 @@ export function SourceShelfBookList({
       {books.map((book, i) => {
         const number = startIndex + i
         const hasCover = hasRealCoverUrl(book.coverUrl)
-        const clubHref = openInClubHref(book.title, book.author)
+        const clubHref = clubOpenHref(book.title, book.author)
 
         return (
           <li key={book.key} className="flex gap-3 py-4">
