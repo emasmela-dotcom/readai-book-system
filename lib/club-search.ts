@@ -279,6 +279,21 @@ function unavailableReasonForHint(hint: CatalogHint): 'copyright' | 'not_found' 
   return 'copyright'
 }
 
+/** Library catalog check — recent first-publish years are treated as still under copyright. */
+export async function isLikelyCopyrightedTitle(
+  title: string,
+  author: string | null,
+): Promise<boolean> {
+  const titlePart = primaryTitleForMatch(title.trim())
+  if (!titlePart) return false
+
+  const query = [titlePart, author?.trim()].filter(Boolean).join(' ')
+  const hint = await lookupCatalogHint(query, titlePart)
+  if (!hint) return false
+
+  return unavailableReasonForHint(hint) === 'copyright'
+}
+
 /** True when the query looks like a specific title — not vague topic or nonsense. */
 function isSpecificTitleLookup(query: string, intent: ClubSearchIntent): boolean {
   if (intent !== 'book_lookup') return false

@@ -1,4 +1,4 @@
-import { resolveGutenbergReadableMatch } from '@/lib/club-search'
+import { isLikelyCopyrightedTitle, resolveGutenbergReadableMatch } from '@/lib/club-search'
 import { findQueuedClubBook, markClubBookImported, queueClubBookImport } from '@/lib/club-import-queue'
 import { normalisePhrase, primaryTitleForMatch, significantTitleTokens } from '@/lib/book-search'
 import { fetchGutendexBookById } from '@/lib/gutenberg'
@@ -9,6 +9,7 @@ import { resolveClubBookByQuery } from '@/lib/resolve-club-book'
 export type EnsureClubBookResult =
   | { status: 'ready'; bookId: number }
   | { status: 'loading'; title: string; author: string | null }
+  | { status: 'copyrighted'; title: string; author: string | null }
 
 function matchCuratedGutenbergId(title: string): number | null {
   const primary = normalisePhrase(primaryTitleForMatch(title))
@@ -115,6 +116,20 @@ export async function ensureClubReadableBookWithStatus(
       await markClubBookImported(trimmedTitle, author, bookId, matchCuratedGutenbergId(searchTitle))
       return { status: 'ready', bookId }
     }
+  }
+
+  const primaryTitle = primaryTitleForMatch(trimmedTitle)
+  const hasPublicDomainSignal =
+    matchCuratedGutenbergId(trimmedTitle) != null ||
+    (await resolveGutenbergReadableMatch(
+      [primaryTitle, author?.trim()].filter(Boolean).join(' '),
+      primaryTitle,
+      author?.trim() ?? '',
+      15_000,
+    )) != null
+
+  if (!hasPublicDomainSignal && (await isLikelyCopyrightedTitle(trimmedTitle, author))) {
+    return { status: 'copyrighted', title: trimmedTitle, author }
   }
 
   await queueClubBookImport({
