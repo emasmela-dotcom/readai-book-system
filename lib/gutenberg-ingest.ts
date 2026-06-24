@@ -273,6 +273,39 @@ async function insertFullBook(
   }
 }
 
+/** Import one Gutendex title into the club catalog for in-app reading. */
+export async function importGutenbergBookByGutendex(book: GutendexBook): Promise<number | null> {
+  const title = cleanTitle(book.title)
+  const author = primaryAuthor(book)
+
+  try {
+    const existing = await sql`
+      SELECT id FROM books WHERE gutenberg_id = ${book.id} LIMIT 1
+    `
+    if (existing[0]?.id) return existing[0].id as number
+  } catch {
+    // continue
+  }
+
+  if (!book.languages?.includes('en')) return null
+
+  try {
+    if (await alreadyImported(book.id, title, author)) {
+      const rows = await sql`SELECT id FROM books WHERE gutenberg_id = ${book.id} LIMIT 1`
+      return (rows[0]?.id as number | undefined) ?? null
+    }
+
+    const bodyText = await downloadPlainText(book.formats)
+    if (!isFullBookText(bodyText)) return null
+
+    const inserted = await insertFullBook(book, bodyText!)
+    return inserted.id
+  } catch (error) {
+    console.error('[gutenberg-ingest] single import failed:', title, error)
+    return null
+  }
+}
+
 export async function importGutenbergBooks(
   targetCount: number,
   startPage = 1,

@@ -157,7 +157,7 @@ function gutenbergCoverUrl(gutenbergId: number): string {
   return `https://www.gutenberg.org/cache/epub/${gutenbergId}/pg${gutenbergId}.cover.medium.jpg`
 }
 
-async function resolveGutenbergReadableMatch(
+export async function resolveGutenbergReadableMatch(
   query: string,
   titlePart: string,
   authorPart: string,

@@ -81,6 +81,16 @@ export async function fetchGutendexSearch(
   return res.json() as Promise<GutendexResponse>
 }
 
+export async function fetchGutendexBookById(id: number): Promise<GutendexBook | null> {
+  try {
+    const res = await fetchWithRetry(`https://gutendex.com/books/${id}`)
+    if (!res.ok) return null
+    return (await res.json()) as GutendexBook
+  } catch {
+    return null
+  }
+}
+
 /** Plain text from Project Gutenberg cache (works when Gutendex is down). */
 export async function downloadGutenbergCacheText(gutenbergId: number): Promise<string | null> {
   const url = `https://www.gutenberg.org/cache/epub/${gutenbergId}/pg${gutenbergId}.txt`

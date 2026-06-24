@@ -4,6 +4,12 @@ import { BOOK_COVER_THUMB_BOX_CLASS, BOOK_COVER_THUMB_CLASS } from '@/lib/book-c
 import { hasRealCoverUrl } from '@/lib/book-covers'
 import type { GenreSourceShelfBook } from '@/lib/genre-source-shelves'
 
+function openInClubHref(title: string, author: string | null): string {
+  const params = new URLSearchParams({ title })
+  if (author) params.set('author', author)
+  return `/books/open?${params.toString()}`
+}
+
 export function SourceShelfBookList({
   books,
   startIndex = 1,
@@ -16,6 +22,7 @@ export function SourceShelfBookList({
       {books.map((book, i) => {
         const number = startIndex + i
         const hasCover = hasRealCoverUrl(book.coverUrl)
+        const clubHref = openInClubHref(book.title, book.author)
 
         return (
           <li key={book.key} className="flex gap-3 py-4">
@@ -24,26 +31,19 @@ export function SourceShelfBookList({
             </span>
 
             <div className="min-w-0 flex-1">
-              <a
-                href={book.openLibraryHref}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href={clubHref}
                 className="block font-serif text-lg font-medium leading-snug text-[#f5f2ed] transition hover:text-[#c9a96e] hover:underline"
               >
                 {book.title}
-              </a>
+              </Link>
               <p className="mt-1 text-sm leading-snug text-[#eadfce]">
                 {book.author ? <>by {book.author}</> : <>by Unknown author</>}
               </p>
 
               <div className="mt-3 flex flex-wrap items-start gap-3">
                 {hasCover ? (
-                  <a
-                    href={book.openLibraryHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0"
-                  >
+                  <Link href={clubHref} className="shrink-0">
                     <div className={BOOK_COVER_THUMB_BOX_CLASS}>
                       <BookCoverImage
                         coverUrl={book.coverUrl ?? undefined}
@@ -51,14 +51,20 @@ export function SourceShelfBookList({
                         className={BOOK_COVER_THUMB_CLASS}
                       />
                     </div>
-                  </a>
+                  </Link>
                 ) : null}
                 <div className="flex flex-wrap gap-3 text-xs text-[#eadfce]">
+                  <Link
+                    href={clubHref}
+                    className="uppercase tracking-[0.15em] text-[#c9a96e] hover:underline"
+                  >
+                    Read in club
+                  </Link>
                   <a
                     href={book.openLibraryHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="uppercase tracking-[0.15em] text-[#c9a96e] hover:underline"
+                    className="uppercase tracking-[0.15em] text-[#eadfce]/80 hover:text-[#c9a96e] hover:underline"
                   >
                     {book.openLibraryLabel}
                   </a>
@@ -66,13 +72,10 @@ export function SourceShelfBookList({
                     href={book.readHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="uppercase tracking-[0.15em] text-[#c9a96e] hover:underline"
+                    className="uppercase tracking-[0.15em] text-[#eadfce]/80 hover:text-[#c9a96e] hover:underline"
                   >
                     {book.readLabel}
                   </a>
-                  <Link href="/sources" className="uppercase tracking-[0.15em] text-[#c9a96e] hover:underline">
-                    All sources
-                  </Link>
                 </div>
               </div>
             </div>

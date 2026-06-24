@@ -106,8 +106,8 @@ export default async function GenrePage({
             titles via connected sources
           </p>
           <p className="mt-2 text-xs text-[#eadfce]/80">
-            Each title links to legal source searches — Gutenberg, Open Library, and more. ReadAI does not
-            host a private book catalog.
+            Tap a title to open the full read in ReadAI when it is public domain. Source links are
+            optional extras.
           </p>
           {browseLinks.length > 0 ? (
             <ul className="mt-4 flex flex-wrap gap-3">
