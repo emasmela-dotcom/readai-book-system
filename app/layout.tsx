@@ -29,8 +29,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
-      <body className={`${inter.className} bg-[#0e0c0a] font-sans text-[#e8e4df]/90 antialiased`}>
+      <head>
         <GoogleAnalytics />
+      </head>
+      <body className={`${inter.className} bg-[#0e0c0a] font-sans text-[#e8e4df]/90 antialiased`}>
         <div className="flex min-h-screen flex-col">
           <div className="flex-1">{children}</div>
           <SiteFooter />
