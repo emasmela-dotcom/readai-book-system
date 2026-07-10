@@ -3,7 +3,7 @@ const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-RG96PMWRL0'
 export function GoogleAnalytics() {
   return (
     <>
-      <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`} />
+      <script async src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}></script>
       <script
         dangerouslySetInnerHTML={{
           __html: `
@@ -13,7 +13,7 @@ export function GoogleAnalytics() {
             gtag('config', '${gaId}');
           `,
         }}
-      />
+      ></script>
     </>
   )
 }
