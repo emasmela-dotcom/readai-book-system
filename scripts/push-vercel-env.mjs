@@ -60,6 +60,7 @@ const resendKey = await loadResendKey()
 
 const vars = {
   DATABASE_URL: process.env.DATABASE_URL?.trim(),
+  NEXT_PUBLIC_GA_MEASUREMENT_ID: process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim(),
   RESEND_API_KEY: resendKey,
   STRIPE_PRICE_MONTHLY: process.env.STRIPE_PRICE_MONTHLY?.trim(),
   STRIPE_PRICE_YEARLY: process.env.STRIPE_PRICE_YEARLY?.trim(),
