@@ -1,4 +1,4 @@
-const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-RG96PMWRL0'
+const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || 'G-C26GN3PML1'
 
 export function GoogleAnalytics() {
   return (
