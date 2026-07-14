@@ -8,16 +8,18 @@ import type { GenreSourceShelfBook } from '@/lib/genre-source-shelves'
 export function SourceShelfBookList({
   books,
   startIndex = 1,
+  guestCookbook = false,
 }: {
   books: GenreSourceShelfBook[]
   startIndex?: number
+  guestCookbook?: boolean
 }) {
   return (
     <ul className="divide-y divide-white/10 border-y border-white/10">
       {books.map((book, i) => {
         const number = startIndex + i
         const hasCover = hasRealCoverUrl(book.coverUrl)
-        const clubHref = clubOpenHref(book.title, book.author)
+        const clubHref = clubOpenHref(book.title, book.author, { guestCookbook })
 
         return (
           <li key={book.key} className="flex gap-3 py-4">

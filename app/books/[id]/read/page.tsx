@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { requireClubOrCookbookAccess } from '@/lib/auth/require-club-or-cookbook'
 import { ReaderModeSelect, type ReaderMode } from '@/components/reader-mode-select'
 import { ReadingModeTip } from '@/components/reading-mode-tip'
 import { ReadingProgressTracker } from '@/components/reading-progress-tracker'
@@ -26,14 +27,28 @@ function parseMode(value: string | string[] | undefined): ReaderMode {
   return raw === 'scroll' ? 'scroll' : 'pages'
 }
 
+function getSingleParam(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value
+}
+
 export default async function BookReadPage({
   params,
   searchParams,
 }: {
   params: { id: string } | Promise<{ id: string }>
   searchParams:
-    | { page?: string | string[]; mode?: string | string[]; y?: string | string[] }
-    | Promise<{ page?: string | string[]; mode?: string | string[]; y?: string | string[] }>
+    | {
+        page?: string | string[]
+        mode?: string | string[]
+        y?: string | string[]
+        guest?: string | string[]
+      }
+    | Promise<{
+        page?: string | string[]
+        mode?: string | string[]
+        y?: string | string[]
+        guest?: string | string[]
+      }>
 }) {
   const resolvedParams = await Promise.resolve(params)
   const resolvedSearchParams = await Promise.resolve(searchParams)
@@ -41,15 +56,30 @@ export default async function BookReadPage({
   if (!Number.isInteger(bookId) || bookId < 1) notFound()
 
   const rows = await sql`
-    SELECT id, title, author, pages, gutenberg_id
+    SELECT id, title, author, pages, gutenberg_id, subcategory
     FROM books
     WHERE id = ${bookId}
     LIMIT 1
   `
   const book = rows[0] as
-    | { id: number; title: string; author: string; pages: number | null; gutenberg_id: number | null }
+    | {
+        id: number
+        title: string
+        author: string
+        pages: number | null
+        gutenberg_id: number | null
+        subcategory: string | null
+      }
     | undefined
   if (!book) notFound()
+
+  const guestCookbook = getSingleParam(resolvedSearchParams.guest)?.trim() === 'cookbook'
+  if (!guestCookbook) {
+    await requireClubOrCookbookAccess(
+      { title: book.title, subcategory: book.subcategory },
+      `/books/${book.id}/read`,
+    )
+  }
 
   const body = await resolveBookBody(book)
   if (!body) notFound()
@@ -67,17 +97,25 @@ export default async function BookReadPage({
     gutenbergId: book.gutenberg_id,
   })
 
-  const pageHref = (p: number) =>
-    p <= 1
-      ? `/books/${book.id}/read`
-      : `/books/${book.id}/read?page=${p}`
+  const pageHref = (p: number) => {
+    const params = new URLSearchParams()
+    if (p > 1) params.set('page', String(p))
+    if (mode === 'scroll') params.set('mode', 'scroll')
+    if (guestCookbook) params.set('guest', 'cookbook')
+    const q = params.toString()
+    return q ? `/books/${book.id}/read?${q}` : `/books/${book.id}/read`
+  }
+
+  const bookDetailsHref = guestCookbook
+    ? `/books/${book.id}?guest=cookbook`
+    : `/books/${book.id}`
 
   return (
     <main className="min-h-screen bg-[#0e0c0a] text-[#e8e4df]">
       <header className="sticky top-0 z-30 border-b border-white/15 bg-[#0e0c0a]/98 backdrop-blur-md">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-5 py-3 md:px-8 md:py-4">
           <Link
-            href={`/books/${book.id}`}
+            href={bookDetailsHref}
             className="shrink-0 text-xs uppercase tracking-[0.2em] text-[#c9a96e] hover:underline"
           >
             ← Book details

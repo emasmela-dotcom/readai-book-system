@@ -1,3 +1,6 @@
+import { hasClubAccess } from '@/lib/auth/access'
+import { isGuestFreeCookbook } from '@/lib/auth/guest-cookbook'
+import { getSessionUser } from '@/lib/auth/session'
 import { ensureClubReadableBookWithStatus } from '@/lib/ensure-club-readable'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
@@ -11,28 +14,41 @@ function getSingleParam(value: string | string[] | undefined): string | undefine
 export default async function OpenBookPage({
   searchParams,
 }: {
-  searchParams: { title?: string | string[]; author?: string | string[] } | Promise<{
-    title?: string | string[]
-    author?: string | string[]
-  }>
+  searchParams:
+    | { title?: string | string[]; author?: string | string[]; free?: string | string[] }
+    | Promise<{ title?: string | string[]; author?: string | string[]; free?: string | string[] }>
 }) {
   const resolved = await Promise.resolve(searchParams)
   const title = getSingleParam(resolved.title)?.trim() ?? ''
   const author = getSingleParam(resolved.author)?.trim() || null
+  const freeCookbook = getSingleParam(resolved.free)?.trim() === 'cookbook'
 
   if (!title) notFound()
 
+  const nextParams = new URLSearchParams({ title })
+  if (author) nextParams.set('author', author)
+  if (freeCookbook) nextParams.set('free', 'cookbook')
+  const nextPath = `/books/open?${nextParams.toString()}`
+  const user = await getSessionUser()
+  if (!(user && hasClubAccess(user)) && !freeCookbook && !isGuestFreeCookbook({ title })) {
+    if (!user) redirect(`/sign-in?next=${encodeURIComponent(nextPath)}`)
+    redirect('/subscribe')
+  }
+
   const result = await ensureClubReadableBookWithStatus(title, author)
-  if (result.status === 'ready') redirect(`/books/${result.bookId}/read`)
+  if (result.status === 'ready') {
+    const readPath =
+      freeCookbook || isGuestFreeCookbook({ title })
+        ? `/books/${result.bookId}/read?guest=cookbook`
+        : `/books/${result.bookId}/read`
+    redirect(readPath)
+  }
 
   if (result.status === 'copyrighted') {
     redirect('/genres')
   }
 
-  const retryHref = `/books/open?${new URLSearchParams({
-    title,
-    ...(author ? { author } : {}),
-  }).toString()}`
+  const retryHref = `/books/open?${nextParams.toString()}`
 
   return (
     <main className="min-h-screen bg-[#0e0c0a] px-5 py-10 text-[#f5f2ed] md:px-8 md:py-14">

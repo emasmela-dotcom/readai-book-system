@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { requireClubOrCookbookAccess } from '@/lib/auth/require-club-or-cookbook'
 import { sql } from '@/lib/db'
 import { authorHref } from '@/lib/author-slug'
 import { bookHasFullText } from '@/lib/book-body'
@@ -33,10 +34,13 @@ interface BookRow {
 
 export default async function BookPage({
   params,
+  searchParams,
 }: {
   params: { id: string } | Promise<{ id: string }>
+  searchParams?: { guest?: string | string[] } | Promise<{ guest?: string | string[] }>
 }) {
   const resolvedParams = await Promise.resolve(params)
+  const resolvedSearchParams = await Promise.resolve(searchParams ?? {})
   const bookId = Number(resolvedParams.id)
   if (!Number.isInteger(bookId) || bookId < 1) notFound()
 
@@ -49,6 +53,19 @@ export default async function BookPage({
   `
   const book = rows[0] as BookRow | undefined
   if (!book) notFound()
+
+  const guestCookbook =
+    (Array.isArray(resolvedSearchParams.guest)
+      ? resolvedSearchParams.guest[0]
+      : resolvedSearchParams.guest
+    )?.trim() === 'cookbook'
+
+  if (!guestCookbook) {
+    await requireClubOrCookbookAccess(
+      { title: book.title, subcategory: book.subcategory },
+      `/books/${book.id}`,
+    )
+  }
 
   const coverUrl = book.cover_url?.trim() || null
 
@@ -125,7 +142,11 @@ export default async function BookPage({
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              href={`/books/${book.id}/read`}
+              href={
+                guestCookbook
+                  ? `/books/${book.id}/read?guest=cookbook`
+                  : `/books/${book.id}/read`
+              }
               className="inline-block w-full border-2 border-[#c9a96e] bg-[#c9a96e] px-6 py-4 text-center text-sm font-medium uppercase tracking-[0.2em] text-[#0e0c0a] transition hover:bg-[#d4b87a] sm:w-auto"
             >
               Read now

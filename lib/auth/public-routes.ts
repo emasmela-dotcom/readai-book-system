@@ -7,6 +7,8 @@ const PUBLIC_PATHS = new Set([
   '/sources',
   '/subscribe',
   '/support',
+  '/genres/cooking',
+  '/books/open',
 ])
 
 const PUBLIC_API_PREFIXES = [
@@ -24,8 +26,12 @@ const PUBLIC_API_PREFIXES = [
   '/api/stripe/config-check',
 ]
 
+/** Book detail + reader routes are public at the edge; pages enforce club vs free cookbook. */
+const PUBLIC_BOOK_PATH = /^\/books\/\d+(\/read)?$/
+
 export function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true
+  if (PUBLIC_BOOK_PATH.test(pathname)) return true
   if (pathname.startsWith('/api/auth')) return true
   return PUBLIC_API_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(prefix),

@@ -128,7 +128,11 @@ export default async function GenrePage({
               of <span className="font-medium text-[#f5f2ed]">{sourceShelf.total.toLocaleString()}</span>{' '}
               titles
             </p>
-            <SourceShelfBookList books={sourceShelf.books} startIndex={offset + 1} />
+            <SourceShelfBookList
+              books={sourceShelf.books}
+              startIndex={offset + 1}
+              guestCookbook={aisle.id === 'cooking'}
+            />
           </>
         )}
 
