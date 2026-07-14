@@ -20,4 +20,11 @@ export function planFromPriceId(priceId: string | null | undefined): Subscriptio
   return null
 }
 
-export const PAID_SUBSCRIPTION_TIERS = new Set(['monthly', 'yearly', 'active'])
+export const PAID_SUBSCRIPTION_TIERS = new Set([
+  'monthly',
+  'yearly',
+  'active',
+  'pro',
+  'business',
+  'agency',
+])
