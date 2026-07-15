@@ -9,6 +9,9 @@ const PUBLIC_PATHS = new Set([
   '/support',
   '/genres/cooking',
   '/books/open',
+  '/robots.txt',
+  '/sitemap.xml',
+  '/llms.txt',
 ])
 
 const PUBLIC_API_PREFIXES = [

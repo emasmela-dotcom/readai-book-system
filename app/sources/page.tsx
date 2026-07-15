@@ -10,9 +10,9 @@ const REFERENCE_LINK_COUNT =
   CONNECTED_SOURCES.length + CONNECTED_MOVIE_SOURCES.length + COOKBOOK_SOURCES.length + MAGAZINE_SOURCES.length
 
 export const metadata = {
-  title: 'Sources Reference | ReadAI',
+  title: 'Legal reading sources',
   description:
-    'Master reference for every legal reading, library, film, cookbook, and magazine source connected to ReadAI Book Club.',
+    'Master reference for every legal reading, library, film, cookbook, and magazine source connected to ReadAI365.',
 }
 
 export default function SourcesPage() {
