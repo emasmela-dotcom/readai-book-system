@@ -3,11 +3,15 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
+import { getDictionary } from '@/lib/i18n/dictionaries'
+import { getLocaleFromPathname, localizedPath, type Locale } from '@/lib/i18n/config'
 
 const linkClass = 'hover:text-[#c9a96e]'
 
-export function AuthNavLinks() {
+export function AuthNavLinks({ locale: localeProp }: { locale?: Locale }) {
   const pathname = usePathname()
+  const locale = localeProp ?? getLocaleFromPathname(pathname || '/')
+  const t = getDictionary(locale)
   const [signedIn, setSignedIn] = useState(false)
   const [ready, setReady] = useState(false)
 
@@ -30,7 +34,7 @@ export function AuthNavLinks() {
   async function signOut() {
     await fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' })
     setSignedIn(false)
-    window.location.assign('/')
+    window.location.assign(localizedPath(locale, '/'))
   }
 
   if (!ready) {
@@ -44,18 +48,18 @@ export function AuthNavLinks() {
         onClick={signOut}
         className="border border-[#c9a96e]/60 px-2 py-1 text-[#c9a96e] hover:bg-[#c9a96e]/10"
       >
-        Sign out
+        {t.nav.signOut}
       </button>
     )
   }
 
   return (
     <>
-      <Link href="/sign-up" className={linkClass}>
-        Start free trial
+      <Link href={localizedPath(locale, '/sign-up')} className={linkClass}>
+        {t.nav.startTrial}
       </Link>
-      <Link href="/sign-in" className={linkClass}>
-        Sign in
+      <Link href={localizedPath(locale, '/sign-in')} className={linkClass}>
+        {t.nav.signIn}
       </Link>
     </>
   )
