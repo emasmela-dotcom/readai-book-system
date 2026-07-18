@@ -10,6 +10,9 @@ import {
 } from '@/lib/saved-books-storage'
 import { FEATURED_FILMS } from '@/lib/movie-sources'
 
+import { getDictionary } from '@/lib/i18n/dictionaries'
+import { localizedPath, type Locale } from '@/lib/i18n/config'
+
 const FEATURED_FILM_COUNT = FEATURED_FILMS.length
 const SPOTLIGHT_FILM = FEATURED_FILMS[0]
 
@@ -30,6 +33,7 @@ interface HomeBrowseHubProps {
     tagline: string
   }[]
   genresLoading?: boolean
+  locale?: Locale
 }
 
 function PathCard({
@@ -80,7 +84,9 @@ function PathCard({
   )
 }
 
-export function HomeBrowseHub({ rooms, genresLoading }: HomeBrowseHubProps) {
+export function HomeBrowseHub({ rooms, genresLoading, locale = 'en' }: HomeBrowseHubProps) {
+  const t = getDictionary(locale)
+  const href = (path: string) => localizedPath(locale, path)
   const [savedCount, setSavedCount] = useState(0)
   const [lastRead, setLastRead] = useState<LastReadState | null>(null)
   const heroLeftRef = useRef<HTMLDivElement>(null)
@@ -166,17 +172,17 @@ export function HomeBrowseHub({ rooms, genresLoading }: HomeBrowseHubProps) {
           />
           <div className="relative">
             <div ref={heroLeftRef} className="xl:pr-[332px]">
-              <p className="text-[11px] uppercase tracking-[0.35em] text-[#d8b67c]">Private reading club</p>
+              <p className="text-[11px] uppercase tracking-[0.35em] text-[#d8b67c]">{t.home.heroEyebrow}</p>
               <h1 className="mt-3 max-w-3xl font-serif text-4xl leading-tight text-[#f6efe7] md:text-5xl">
-                Every book. Every reader. Every story.
+                {t.home.heroTitle}
               </h1>
               <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[#f5eee6]">
-                Join a community of readers who live for their next great read.
+                {t.home.heroBody}
               </p>
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#eadfce]">
-                14-day free trial · then $9/month or $79/year.{' '}
-                <Link href="/sign-up" className="font-medium text-[#d8b67c] hover:underline">
-                  Start free trial
+                {t.home.heroTrial}{' '}
+                <Link href={href('/sign-up')} className="font-medium text-[#d8b67c] hover:underline">
+                  {t.nav.startTrial}
                 </Link>
               </p>
 
@@ -184,7 +190,7 @@ export function HomeBrowseHub({ rooms, genresLoading }: HomeBrowseHubProps) {
                 {GENRE_ROOMS.map((id) => (
                   <li key={id}>
                     <Link
-                      href={`/genres/${id}`}
+                      href={href(`/genres/${id}`)}
                       className="inline-block border border-white/15 px-3 py-1 text-[11px] uppercase tracking-wider text-[#f0e7db] transition hover:border-[#d8b67c]/60 hover:text-[#d8b67c]"
                     >
                       {id.replace('-', ' ')}
@@ -193,18 +199,18 @@ export function HomeBrowseHub({ rooms, genresLoading }: HomeBrowseHubProps) {
                 ))}
                 <li>
                   <Link
-                    href="/movies"
+                    href={href('/movies')}
                     className="inline-block border border-white/15 px-3 py-1 text-[11px] uppercase tracking-wider text-[#f0e7db] transition hover:border-[#d8b67c]/60 hover:text-[#d8b67c]"
                   >
-                    movies
+                    {t.nav.movies}
                   </Link>
                 </li>
                 <li>
                   <Link
-                    href="/genres"
+                    href={href('/genres')}
                     className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider text-[#d8b67c] hover:underline"
                   >
-                    All rooms →
+                    {t.home.allRooms}
                   </Link>
                 </li>
               </ul>
@@ -214,17 +220,19 @@ export function HomeBrowseHub({ rooms, genresLoading }: HomeBrowseHubProps) {
               ref={heroAsideRef}
               className="mt-8 border border-white/10 bg-[#140f0c] p-5 xl:absolute xl:right-0 xl:top-0 xl:mt-0 xl:w-[300px]"
             >
-              <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">Film room</p>
-              <Link href="/movies" className="mt-4 flex items-start gap-4 transition hover:opacity-90">
+              <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">{t.home.filmRoom}</p>
+              <Link href={href('/movies')} className="mt-4 flex items-start gap-4 transition hover:opacity-90">
                 <FilmCoverThumb
                   filmTitle={SPOTLIGHT_FILM.title}
                   eager
                   className="h-28 w-20 shrink-0 border border-white/15 bg-[#18120e] object-cover"
                 />
                 <div className="min-w-0">
-                  <p className="font-serif text-xl text-[#f5eee6]">{FEATURED_FILM_COUNT} movie books</p>
+                  <p className="font-serif text-xl text-[#f5eee6]">
+                    {FEATURED_FILM_COUNT} {t.home.movieBooks}
+                  </p>
                   <p className="mt-2 text-xs uppercase tracking-[0.2em] text-[#d8b67c]">
-                    Enter Movies section →
+                    {t.home.enterMovies}
                   </p>
                 </div>
               </Link>
@@ -234,43 +242,51 @@ export function HomeBrowseHub({ rooms, genresLoading }: HomeBrowseHubProps) {
 
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           <PathCard
-            eyebrow="Continue reading"
-            title={lastRead ? lastRead.title : 'Return to your place'}
+            eyebrow={t.home.continueReading}
+            title={lastRead ? lastRead.title : t.home.returnPlace}
             body={
               lastRead
                 ? `${lastRead.author} · ${lastRead.progressLabel}`
-                : 'When you open a book from a connected source, your last session can appear here.'
+                : t.home.returnPlaceBody
             }
             href={lastRead?.href}
-            cta={lastRead ? 'Resume reading' : 'Waiting for your first session'}
+            cta={lastRead ? t.home.resumeReading : t.home.waitingSession}
           />
           <PathCard
-            eyebrow="Saved books"
-            title={savedCount > 0 ? `${savedCount} saved on your account` : 'Build a personal shelf'}
+            eyebrow={t.home.savedBooks}
+            title={
+              savedCount > 0
+                ? locale === 'es'
+                  ? `${savedCount} guardados en tu cuenta`
+                  : `${savedCount} saved on your account`
+                : t.home.buildShelf
+            }
             body={
               savedCount > 0
-                ? 'Open your shelf to see every title saved to your account.'
-                : 'Save titles while browsing connected sources.'
+                ? locale === 'es'
+                  ? 'Abre tu estante para ver cada título guardado.'
+                  : 'Open your shelf to see every title saved to your account.'
+                : t.home.saveWhileBrowsing
             }
-            href="/saved"
-            cta={savedCount > 0 ? 'Open saved shelf →' : 'View saved shelf →'}
+            href={href('/saved')}
+            cta={t.home.openSavedShelf}
           />
           <PathCard
-            eyebrow="Browse by room"
-            title="Walk the rooms"
-            body="Move between horror, mystery, romance, fantasy, literary fiction, and every room beyond."
-            href="/genres"
-            cta="Enter the rooms"
+            eyebrow={t.home.browseByRoom}
+            title={t.home.walkRooms}
+            body={t.home.walkRoomsBody}
+            href={href('/genres')}
+            cta={t.home.enterRooms}
           />
         </div>
 
         <div className="mt-4">
           <PathCard
-            eyebrow="Film room"
-            title={`${FEATURED_FILM_COUNT} movie books`}
-            body="Search a film and follow connected source links for its book."
-            href="/movies"
-            cta="Enter Movies section"
+            eyebrow={t.home.filmRoom}
+            title={`${FEATURED_FILM_COUNT} ${t.home.movieBooks}`}
+            body={t.home.movieBooksBody}
+            href={href('/movies')}
+            cta={t.home.enterMovies}
             thumbTitle={SPOTLIGHT_FILM.title}
           />
         </div>

@@ -6,97 +6,55 @@ const base = 'https://www.readai365.com'
 /** Rebuild regularly so Google sees new public cookbook pages. */
 export const revalidate = 3600
 
-function staticRoutes(now: Date): MetadataRoute.Sitemap {
+type SitemapEntry = MetadataRoute.Sitemap[number]
+
+function pairedEntry(
+  enPath: string,
+  esPath: string,
+  now: Date,
+  changeFrequency: SitemapEntry['changeFrequency'],
+  priority: number,
+): SitemapEntry[] {
+  const enUrl = enPath === '/' ? base : `${base}${enPath}`
+  const esUrl = `${base}${esPath}`
+  const languages = {
+    en: enUrl,
+    es: esUrl,
+    'x-default': enUrl,
+  }
+
   return [
     {
-      url: base,
+      url: enUrl,
       lastModified: now,
-      changeFrequency: 'daily',
-      priority: 1,
+      changeFrequency,
+      priority,
+      alternates: { languages },
     },
     {
-      url: `${base}/sources`,
+      url: esUrl,
       lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.9,
+      changeFrequency,
+      priority,
+      alternates: { languages },
     },
-    {
-      url: `${base}/genres/cooking`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.85,
-    },
-    {
-      url: `${base}/support`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    },
-    {
-      url: `${base}/subscribe`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.6,
-    },
-    {
-      url: `${base}/sign-up`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.6,
-    },
-    {
-      url: `${base}/sign-in`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.4,
-    },
+  ]
+}
+
+function staticRoutes(now: Date): MetadataRoute.Sitemap {
+  return [
+    ...pairedEntry('/', '/es', now, 'daily', 1),
+    ...pairedEntry('/sources', '/es/sources', now, 'weekly', 0.9),
+    ...pairedEntry('/genres/cooking', '/es/genres/cooking', now, 'daily', 0.85),
+    ...pairedEntry('/support', '/es/support', now, 'monthly', 0.5),
+    ...pairedEntry('/subscribe', '/es/subscribe', now, 'monthly', 0.6),
+    ...pairedEntry('/sign-up', '/es/sign-up', now, 'monthly', 0.6),
+    ...pairedEntry('/sign-in', '/es/sign-in', now, 'monthly', 0.4),
     {
       url: `${base}/forgot-password`,
       lastModified: now,
       changeFrequency: 'yearly',
       priority: 0.2,
-    },
-    {
-      url: `${base}/es`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 1,
-    },
-    {
-      url: `${base}/es/sources`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${base}/es/genres/cooking`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.85,
-    },
-    {
-      url: `${base}/es/support`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    },
-    {
-      url: `${base}/es/subscribe`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.6,
-    },
-    {
-      url: `${base}/es/sign-up`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.6,
-    },
-    {
-      url: `${base}/es/sign-in`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.4,
     },
     {
       url: `${base}/llms.txt`,
@@ -110,7 +68,20 @@ function staticRoutes(now: Date): MetadataRoute.Sitemap {
 /** Public pages only — locked club rooms stay out of the sitemap. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
-  const entries = staticRoutes(now)
+  let entries: MetadataRoute.Sitemap = []
+
+  try {
+    entries = staticRoutes(now)
+  } catch {
+    entries = [
+      {
+        url: base,
+        lastModified: now,
+        changeFrequency: 'daily',
+        priority: 1,
+      },
+    ]
+  }
 
   try {
     const { rows } = await fetchCookingShelfBooks(200, 0)

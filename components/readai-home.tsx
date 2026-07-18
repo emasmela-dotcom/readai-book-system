@@ -448,7 +448,7 @@ export default function ReadAIHome({ locale = 'en' }: { locale?: Locale }) {
         </div>
       </section>
 
-      <HomeBrowseHub rooms={topRooms} genresLoading={genresLoading} />
+      <HomeBrowseHub rooms={topRooms} genresLoading={genresLoading} locale={locale} />
 
       <section id="genres" className="px-5 py-12 md:px-8 md:py-16">
         <div className="mx-auto max-w-6xl">
