@@ -225,6 +225,7 @@ export function HomeBrowseHub({ rooms, genresLoading, locale = 'en' }: HomeBrows
                 <FilmCoverThumb
                   filmTitle={SPOTLIGHT_FILM.title}
                   eager
+                  placeholderLabel={t.home.movieBookLabel}
                   className="h-28 w-20 shrink-0 border border-white/15 bg-[#18120e] object-cover"
                 />
                 <div className="min-w-0">
@@ -256,18 +257,10 @@ export function HomeBrowseHub({ rooms, genresLoading, locale = 'en' }: HomeBrows
             eyebrow={t.home.savedBooks}
             title={
               savedCount > 0
-                ? locale === 'es'
-                  ? `${savedCount} guardados en tu cuenta`
-                  : `${savedCount} saved on your account`
+                ? t.home.savedCountTitle.replace('{count}', String(savedCount))
                 : t.home.buildShelf
             }
-            body={
-              savedCount > 0
-                ? locale === 'es'
-                  ? 'Abre tu estante para ver cada título guardado.'
-                  : 'Open your shelf to see every title saved to your account.'
-                : t.home.saveWhileBrowsing
-            }
+            body={savedCount > 0 ? t.home.savedCountBody : t.home.saveWhileBrowsing}
             href={href('/saved')}
             cta={t.home.openSavedShelf}
           />
@@ -294,25 +287,23 @@ export function HomeBrowseHub({ rooms, genresLoading, locale = 'en' }: HomeBrows
         <aside className="mt-8 border border-white/10 bg-[#16110d] p-5 md:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">Popular rooms</p>
-              <h2 className="mt-2 font-serif text-2xl text-[#f5eee6]">Browse by room</h2>
+              <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">{t.home.popularRooms}</p>
+              <h2 className="mt-2 font-serif text-2xl text-[#f5eee6]">{t.home.browseByRoom}</h2>
             </div>
-            <Link href="/genres" className="text-xs uppercase tracking-wider text-[#d8b67c] hover:underline">
-              All rooms
+            <Link href={href('/genres')} className="text-xs uppercase tracking-wider text-[#d8b67c] hover:underline">
+              {t.home.allRoomsLink}
             </Link>
           </div>
           {genresLoading ? (
-            <p className="mt-5 text-sm text-[#eadfce]/68">Loading the reading rooms…</p>
+            <p className="mt-5 text-sm text-[#eadfce]/68">{t.home.loadingRooms}</p>
           ) : rooms.length === 0 ? (
-            <p className="mt-5 text-sm text-[#eadfce]/68">
-              Rooms load from connected sources — try again in a moment.
-            </p>
+            <p className="mt-5 text-sm text-[#eadfce]/68">{t.home.roomsEmpty}</p>
           ) : (
             <ul className="mt-5 space-y-3">
               {rooms.slice(0, 5).map((room) => (
                 <li key={room.id} className="border-t border-white/10 pt-3 first:border-t-0 first:pt-0">
                   <Link
-                    href={`/genres/${room.id}`}
+                    href={href(`/genres/${room.id}`)}
                     className="font-serif text-lg text-[#f5eee6] transition hover:text-[#d8b67c]"
                   >
                     {room.title}

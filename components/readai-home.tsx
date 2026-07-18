@@ -452,16 +452,14 @@ export default function ReadAIHome({ locale = 'en' }: { locale?: Locale }) {
 
       <section id="genres" className="px-5 py-12 md:px-8 md:py-16">
         <div className="mx-auto max-w-6xl">
-          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Reading rooms</p>
-          <h2 className="font-serif text-2xl text-[#e8e4df] md:text-3xl">Move between rooms</h2>
-          <p className="mt-2 max-w-xl text-sm text-[#e8e4df]/70">
-            Every room browses connected sources — Open Library, Gutenberg, and more. Pick a genre below,
-            or open the full room list.
-          </p>
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">{t.home.readingRoomsEyebrow}</p>
+          <h2 className="font-serif text-2xl text-[#e8e4df] md:text-3xl">{t.home.readingRoomsTitle}</h2>
+          <p className="mt-2 max-w-xl text-sm text-[#e8e4df]/70">{t.home.readingRoomsBody}</p>
           {!genresLoading && genreListings.length > 0 ? (
             <p className="mt-3 text-xs uppercase tracking-[0.2em] text-[#c9a96e]">
-              {totalTitlesViaSources.toLocaleString()} titles via sources across {genreListings.length}{' '}
-              rooms
+              {t.home.titlesViaSources
+                .replace('{titles}', totalTitlesViaSources.toLocaleString())
+                .replace('{rooms}', String(genreListings.length))}
             </p>
           ) : null}
 
@@ -470,14 +468,12 @@ export default function ReadAIHome({ locale = 'en' }: { locale?: Locale }) {
               href={href('/genres')}
               className="text-xs uppercase tracking-wider text-[#c9a96e] hover:underline"
             >
-              {locale === 'es' ? 'Ver todas las salas →' : 'View all rooms →'}
+              {t.home.viewAllRooms}
             </Link>
           </p>
 
           {genresLoading ? (
-            <p className="mt-8 text-sm text-[#e8e4df]/70">
-              {locale === 'es' ? 'Cargando géneros…' : 'Loading genres…'}
-            </p>
+            <p className="mt-8 text-sm text-[#e8e4df]/70">{t.home.loadingGenres}</p>
           ) : (
             <GenreDirectoryGrid
               locale={locale}
@@ -497,17 +493,16 @@ export default function ReadAIHome({ locale = 'en' }: { locale?: Locale }) {
         className="border-t border-white/10 bg-white/[0.02] px-5 py-12 md:px-8 md:py-16"
       >
         <div className="mx-auto max-w-6xl">
-          <ConnectedSourcesBlock />
+          <ConnectedSourcesBlock locale={locale} />
         </div>
       </section>
 
       <section id="movies" className="border-t border-white/10 bg-white/[0.02] px-5 py-12 md:px-8 md:py-16">
         <div className="mx-auto max-w-6xl">
-          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Film room</p>
-          <h2 className="font-serif text-2xl text-[#e8e4df] md:text-3xl">Movies &amp; movie books</h2>
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">{t.home.filmRoomEyebrow}</p>
+          <h2 className="font-serif text-2xl text-[#e8e4df] md:text-3xl">{t.home.moviesSectionTitle}</h2>
           <p className="mt-2 max-w-xl text-sm text-[#e8e4df]/70">
-            Browse {FEATURED_FILM_COUNT} film-to-book pairings — search a title and follow connected
-            source links for its book.
+            {t.home.moviesSectionBody.replace('{count}', String(FEATURED_FILM_COUNT))}
           </p>
           <p className="mt-4">
             <Link href={href('/movies')} className="text-xs uppercase tracking-wider text-[#c9a96e] hover:underline">
@@ -519,13 +514,13 @@ export default function ReadAIHome({ locale = 'en' }: { locale?: Locale }) {
 
       <section id="magazines" className="border-t border-white/10 bg-white/[0.02] px-5 py-12 md:px-8 md:py-16">
         <div className="mx-auto max-w-6xl">
-          <MagazineSourcesBlock />
+          <MagazineSourcesBlock locale={locale} />
         </div>
       </section>
 
       <section id="cookbooks" className="border-t border-white/10 bg-white/[0.02] px-5 py-12 md:px-8 md:py-16">
         <div className="mx-auto max-w-6xl">
-          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">Kitchen reading</p>
+          <p className="mb-2 text-[11px] uppercase tracking-[0.3em] text-[#c9a96e]">{t.home.kitchenEyebrow}</p>
           <h2 className="font-serif text-2xl text-[#e8e4df] md:text-3xl">{t.home.cookbooksHeading}</h2>
           <p className="mt-2 max-w-xl text-sm text-[#e8e4df]/70">
             {t.home.cookbooksBody}

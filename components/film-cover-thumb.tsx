@@ -7,11 +7,13 @@ export function FilmCoverThumb({
   filmTitle,
   className = 'h-24 w-16 shrink-0 border border-white/15 bg-[#18120e] object-cover',
   eager = false,
+  placeholderLabel = 'Movie book',
 }: {
   filmTitle: string
   className?: string
   /** When true, fetch immediately (for above-the-fold cards). */
   eager?: boolean
+  placeholderLabel?: string
 }) {
   const [coverUrl, setCoverUrl] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
@@ -76,7 +78,12 @@ export function FilmCoverThumb({
 
   return (
     <div ref={ref}>
-      <MovieBookCoverImage coverUrl={coverUrl} title={filmTitle} className={className} />
+      <MovieBookCoverImage
+        coverUrl={coverUrl}
+        title={filmTitle}
+        className={className}
+        placeholderLabel={placeholderLabel}
+      />
     </div>
   )
 }

@@ -5,10 +5,12 @@ export function MovieBookCoverImage({
   coverUrl,
   title,
   className = DEFAULT_CLASS,
+  placeholderLabel = 'Movie book',
 }: {
   coverUrl?: string | null
   title: string
   className?: string
+  placeholderLabel?: string
 }) {
   if (coverUrl?.trim()) {
     return (
@@ -28,7 +30,7 @@ export function MovieBookCoverImage({
       aria-label={`No movie book cover for ${title}`}
     >
       <span className="text-[8px] uppercase leading-tight tracking-wider text-[#eadfce]">
-        Movie book
+        {placeholderLabel}
       </span>
     </div>
   )

@@ -65,40 +65,43 @@ function staticRoutes(now: Date): MetadataRoute.Sitemap {
   ]
 }
 
+async function cookingBookEntries(now: Date): Promise<MetadataRoute.Sitemap> {
+  const timeoutMs = 8000
+  const result = await Promise.race([
+    fetchCookingShelfBooks(200, 0),
+    new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), timeoutMs)
+    }),
+  ])
+
+  if (!result) return []
+
+  const entries: MetadataRoute.Sitemap = []
+  for (const book of result.rows) {
+    entries.push({
+      url: `${base}/books/${book.id}`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    })
+    entries.push({
+      url: `${base}/books/${book.id}/read`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.65,
+    })
+  }
+  return entries
+}
+
 /** Public pages only — locked club rooms stay out of the sitemap. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date()
-  let entries: MetadataRoute.Sitemap = []
+  let entries: MetadataRoute.Sitemap = staticRoutes(now)
 
   try {
-    entries = staticRoutes(now)
-  } catch {
-    entries = [
-      {
-        url: base,
-        lastModified: now,
-        changeFrequency: 'daily',
-        priority: 1,
-      },
-    ]
-  }
-
-  try {
-    const { rows } = await fetchCookingShelfBooks(200, 0)
-    for (const book of rows) {
-      entries.push({
-        url: `${base}/books/${book.id}`,
-        lastModified: now,
-        changeFrequency: 'weekly',
-        priority: 0.7,
-      })
-      entries.push({
-        url: `${base}/books/${book.id}/read`,
-        lastModified: now,
-        changeFrequency: 'weekly',
-        priority: 0.65,
-      })
-    }
+    const bookEntries = await cookingBookEntries(now)
+    entries = entries.concat(bookEntries)
   } catch {
     // Keep the static map if the database is briefly unavailable.
   }

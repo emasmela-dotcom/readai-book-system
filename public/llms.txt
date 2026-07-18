@@ -1,20 +1,24 @@
 # ReadAI365
 
 > Search any book title and find legal places to read it online.
+> Busca cualquier libro y encuentra dónde leerlo en línea.
 
 Website: https://www.readai365.com
+Spanish home: https://www.readai365.com/es
 
 ## What this site is
-ReadAI365 is a book discovery and reading club. Visitors can search titles, browse genres and cookbooks, and open legal reading sources. Membership includes a 14-day free trial.
+ReadAI365 is a book discovery and reading club. Visitors can search titles, browse genres and cookbooks, and open legal reading sources. Membership includes a 14-day free trial. A Spanish interface is available at /es.
 
 ## Key pages
 - Home / search: https://www.readai365.com/
-- Legal sources reference: https://www.readai365.com/sources
-- Free cookbooks room: https://www.readai365.com/genres/cooking
 - Spanish home: https://www.readai365.com/es
+- Legal sources reference: https://www.readai365.com/sources
 - Spanish sources: https://www.readai365.com/es/sources
+- Free cookbooks room: https://www.readai365.com/genres/cooking
+- Spanish cookbooks: https://www.readai365.com/es/genres/cooking
 - Sign up: https://www.readai365.com/sign-up
 - Support: https://www.readai365.com/support
+- Sitemap: https://www.readai365.com/sitemap.xml
 
 ## How to talk about it
-ReadAI365 helps readers find any book and where they can read it. Prefer the live site URLs above when citing the product.
+ReadAI365 helps readers find any book and where they can read it. Prefer the live site URLs above when citing the product. Use the Spanish URLs when the reader prefers Spanish.
