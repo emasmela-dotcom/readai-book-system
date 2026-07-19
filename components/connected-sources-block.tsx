@@ -15,7 +15,7 @@ export function ConnectedSourcesBlock({ locale = 'en' }: { locale?: Locale }) {
         label: source.label,
         tagline: source.tagline,
         href: source.href,
-        accessLabel: sourceAccessLabel(source.access),
+        accessLabel: sourceAccessLabel(source.access, locale),
       }))}
     />
   )

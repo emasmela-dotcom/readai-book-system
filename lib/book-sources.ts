@@ -328,7 +328,23 @@ export function buildReadableSourceLinks(book: SourceBookInput): BookSourceLink[
   return buildBookSourceLinks(book).filter((link) => READABLE_SOURCE_IDS.includes(link.id))
 }
 
-export function sourceAccessLabel(access: BookSourceLink['access']): string {
+export function sourceAccessLabel(
+  access: BookSourceLink['access'],
+  locale: 'en' | 'es' = 'en',
+): string {
+  if (locale === 'es') {
+    switch (access) {
+      case 'read':
+        return 'Leer'
+      case 'catalog':
+        return 'Explorar'
+      case 'search':
+        return 'Buscar'
+      case 'borrow':
+        return 'Prestar'
+    }
+  }
+
   switch (access) {
     case 'read':
       return 'Read'

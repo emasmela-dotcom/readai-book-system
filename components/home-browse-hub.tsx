@@ -43,6 +43,7 @@ function PathCard({
   href,
   cta,
   thumbTitle,
+  movieBookLabel = 'Movie book',
 }: {
   eyebrow: string
   title: string
@@ -50,6 +51,7 @@ function PathCard({
   href?: string
   cta: string
   thumbTitle?: string
+  movieBookLabel?: string
 }) {
   const content = (
     <>
@@ -57,6 +59,7 @@ function PathCard({
         {thumbTitle ? (
           <FilmCoverThumb
             filmTitle={thumbTitle}
+            placeholderLabel={movieBookLabel}
             className="h-20 w-14 shrink-0 border border-white/15 bg-[#18120e] object-cover"
           />
         ) : null}
@@ -281,6 +284,7 @@ export function HomeBrowseHub({ rooms, genresLoading, locale = 'en' }: HomeBrows
             href={href('/movies')}
             cta={t.home.enterMovies}
             thumbTitle={SPOTLIGHT_FILM.title}
+            movieBookLabel={t.home.movieBookLabel}
           />
         </div>
 
