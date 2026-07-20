@@ -17,6 +17,9 @@ const PUBLIC_PATHS = new Set([
 const PUBLIC_API_PREFIXES = [
   '/api/auth',
   '/api/stripe/webhook',
+  '/api/stripe/checkout',
+  '/api/stripe/confirm',
+  '/api/stripe/config-check',
   '/api/club-search',
   '/api/support',
   '/api/movie-book-cover',
@@ -26,7 +29,6 @@ const PUBLIC_API_PREFIXES = [
   '/api/home-covers',
   '/api/book-count',
   '/api/book-cover/',
-  '/api/stripe/config-check',
 ]
 
 /** Book detail + reader routes are public at the edge; pages enforce club vs free cookbook. */

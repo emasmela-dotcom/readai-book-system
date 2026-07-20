@@ -4,7 +4,10 @@ import { PAID_SUBSCRIPTION_TIERS } from '@/lib/stripe/config'
 const TRIAL_DAYS = 14
 
 /** Full club access without payment (family / comped accounts). */
-const COMPED_FULL_ACCESS_EMAILS = new Set(['ruthmasmela41@gmail.com'])
+const COMPED_FULL_ACCESS_EMAILS = new Set([
+  'ruthmasmela41@gmail.com',
+  'emasmela1976@gmail.com',
+])
 
 export function isCompedFullAccessEmail(email: string | null | undefined): boolean {
   if (!email) return false

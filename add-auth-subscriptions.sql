@@ -78,6 +78,17 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 
+-- Stripe plans (monthly/yearly) must be allowed on subscription_tier
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_subscription_tier_check;
+ALTER TABLE users ADD CONSTRAINT users_subscription_tier_check
+  CHECK (
+    subscription_tier IS NULL
+    OR subscription_tier = ANY (ARRAY[
+      'free'::text, 'starter'::text, 'growth'::text, 'pro'::text,
+      'business'::text, 'agency'::text, 'monthly'::text, 'yearly'::text, 'active'::text
+    ])
+  );
+
 -- ---------------------------------------------------------------------------
 -- Migration from OLD schema (only if sessions has token_hash / expires_at)
 -- Run these manually after checking: SELECT column_name FROM information_schema.columns WHERE table_name = 'sessions';

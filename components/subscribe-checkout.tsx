@@ -1,7 +1,7 @@
 'use client'
 
 import { useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export function SubscribeCheckout({
   signedIn,
@@ -15,9 +15,40 @@ export function SubscribeCheckout({
   const searchParams = useSearchParams()
   const [loadingPlan, setLoadingPlan] = useState<'monthly' | 'yearly' | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [confirming, setConfirming] = useState(false)
+  const [confirmed, setConfirmed] = useState(false)
 
   const success = searchParams.get('success') === '1'
   const canceled = searchParams.get('canceled') === '1'
+  const sessionId = searchParams.get('session_id')
+
+  useEffect(() => {
+    if (!success || !sessionId || !signedIn || confirmed || confirming) return
+
+    let cancelled = false
+    setConfirming(true)
+
+    void (async () => {
+      try {
+        const response = await fetch('/api/stripe/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId }),
+        })
+        if (!cancelled && response.ok) {
+          setConfirmed(true)
+        }
+      } catch {
+        // Keep success message; user can refresh or contact support.
+      } finally {
+        if (!cancelled) setConfirming(false)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [success, sessionId, signedIn, confirmed, confirming])
 
   async function startCheckout(plan: 'monthly' | 'yearly') {
     setError(null)
@@ -47,7 +78,15 @@ export function SubscribeCheckout({
   if (success) {
     return (
       <p className="text-sm text-[#f5f2ed]">
-        Payment received. Your membership should unlock in a moment — refresh or return to{' '}
+        {confirming
+          ? 'Payment received. Unlocking your membership…'
+          : confirmed
+            ? 'Membership unlocked. You can open Genres now — '
+            : 'Payment received. Your membership should unlock in a moment — '}
+        <a href="/genres" className="text-[#c9a96e] hover:underline">
+          open Genres
+        </a>
+        {' or '}
         <a href="/" className="text-[#c9a96e] hover:underline">
           club home
         </a>

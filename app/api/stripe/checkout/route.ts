@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       mode: 'subscription',
       customer: stripeCustomerId,
       line_items: [{ price: getPriceIdForPlan(plan), quantity: 1 }],
-      success_url: `${origin}/subscribe?success=1`,
+      success_url: `${origin}/subscribe?success=1&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/subscribe?canceled=1`,
       client_reference_id: user.id,
       metadata: {
