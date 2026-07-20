@@ -1,17 +1,14 @@
 import { MAGAZINE_SOURCES } from '@/lib/magazine-sources'
-import { getDictionary } from '@/lib/i18n/dictionaries'
-import type { Locale } from '@/lib/i18n/config'
 
-export function MagazineSourcesBlock({ locale = 'en' }: { locale?: Locale }) {
-  const t = getDictionary(locale)
+export function MagazineSourcesBlock() {
   return (
     <>
-      <h2 className="font-serif text-2xl text-[#e8e4df] md:text-3xl">{t.home.magazinesTitle}</h2>
+      <h2 className="font-serif text-2xl text-[#e8e4df] md:text-3xl">Magazine picks for variety</h2>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#eadfce]">
-        {t.home.magazinesBody}
+        Today&apos;s magazines and journals — open their sites for essays, fiction, news, and culture.
       </p>
       <p className="mt-2 text-xs text-[#eadfce]/85">
-        {t.home.magazinesNote}
+        External sites may require their own subscription.
       </p>
 
       <ul className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">

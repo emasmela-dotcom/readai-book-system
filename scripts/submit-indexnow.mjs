@@ -10,19 +10,12 @@ const KEY_LOCATION = `https://${HOST}/${KEY}.txt`
 
 const urlList = [
   'https://www.readai365.com/',
-  'https://www.readai365.com/es',
   'https://www.readai365.com/sources',
-  'https://www.readai365.com/es/sources',
   'https://www.readai365.com/genres/cooking',
-  'https://www.readai365.com/es/genres/cooking',
   'https://www.readai365.com/support',
-  'https://www.readai365.com/es/support',
   'https://www.readai365.com/subscribe',
-  'https://www.readai365.com/es/subscribe',
   'https://www.readai365.com/sign-up',
-  'https://www.readai365.com/es/sign-up',
   'https://www.readai365.com/sign-in',
-  'https://www.readai365.com/es/sign-in',
   'https://www.readai365.com/llms.txt',
   'https://www.readai365.com/sitemap.xml',
 ]

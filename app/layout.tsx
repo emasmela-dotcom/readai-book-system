@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { Inter, Playfair_Display } from 'next/font/google'
-import { headers } from 'next/headers'
 import { GoogleAnalytics } from '@/components/google-analytics'
 import { SiteJsonLd } from '@/components/site-json-ld'
 import { SiteFooter } from '@/components/site-footer'
@@ -47,16 +46,10 @@ export const metadata: Metadata = {
   publisher: 'ReadAI365',
   alternates: {
     canonical: '/',
-    languages: {
-      en: '/',
-      es: '/es',
-      'x-default': '/',
-    },
   },
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    alternateLocale: ['es_ES'],
     url: siteUrl,
     siteName: 'ReadAI365',
     title: siteTitle,
@@ -86,16 +79,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const locale = headers().get('x-locale') === 'es' ? 'es' : 'en'
-
   return (
-    <html lang={locale} className={`${inter.variable} ${playfair.variable}`}>
+    <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
       <head>
         <GoogleAnalytics />
         <SiteJsonLd />
-        <link rel="alternate" hrefLang="en" href={`${siteUrl}/`} />
-        <link rel="alternate" hrefLang="es" href={`${siteUrl}/es`} />
-        <link rel="alternate" hrefLang="x-default" href={`${siteUrl}/`} />
       </head>
       <body className={`${inter.className} bg-[#0e0c0a] font-sans text-[#e8e4df]/90 antialiased`}>
         <div className="flex min-h-screen flex-col">

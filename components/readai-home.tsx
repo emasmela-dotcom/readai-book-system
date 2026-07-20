@@ -8,13 +8,11 @@ import { ConnectedSourcesBlock } from '@/components/connected-sources-block'
 import { MagazineSourcesBlock } from '@/components/magazine-sources-block'
 import { GenreDirectoryGrid } from '@/components/genre-directory-grid'
 import { AuthNavLinks } from '@/components/auth-nav-links'
-import { LanguageSwitcher } from '@/components/language-switcher'
 import { ClubSearchBookCard, type ClubSearchBook } from '@/components/club-search-book-card'
 import { sourceAccessLabel } from '@/lib/book-sources'
 import { clubOpenHref } from '@/lib/club-open-href'
 import { FEATURED_FILMS } from '@/lib/movie-sources'
 import { getDictionary } from '@/lib/i18n/dictionaries'
-import { localizedPath, type Locale } from '@/lib/i18n/config'
 
 const FEATURED_FILM_COUNT = FEATURED_FILMS.length
 
@@ -79,9 +77,8 @@ interface GenreListingSection {
   count: number
 }
 
-export default function ReadAIHome({ locale = 'en' }: { locale?: Locale }) {
-  const t = getDictionary(locale)
-  const href = (path: string) => localizedPath(locale, path)
+export default function ReadAIHome() {
+  const t = getDictionary()
   const router = useRouter()
   const [genreListings, setGenreListings] = useState<GenreListingSection[]>([])
   const [genresLoading, setGenresLoading] = useState(true)
@@ -177,36 +174,35 @@ export default function ReadAIHome({ locale = 'en' }: { locale?: Locale }) {
     <div className="min-h-screen bg-[#120d0b]">
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[#120d0b]/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3 md:px-8">
-          <Link href={href('/')} className="font-serif text-xl tracking-wide text-[#e8e4df] md:text-2xl">
+          <Link href="/" className="font-serif text-xl tracking-wide text-[#e8e4df] md:text-2xl">
             {t.brand}
           </Link>
           <nav className="hidden gap-6 text-[11px] uppercase tracking-[0.2em] text-[#e8e4df]/70 md:flex">
             <a href="#browse" className="hover:text-[#c9a96e]">
               {t.nav.browse}
             </a>
-            <Link href={href('/genres')} className="hover:text-[#c9a96e]">
+            <Link href="/genres" className="hover:text-[#c9a96e]">
               {t.nav.genres}
             </Link>
             <a href="#library" className="hover:text-[#c9a96e]">
               {t.nav.sources}
             </a>
-            <Link href={href('/saved')} className="hover:text-[#c9a96e]">
+            <Link href="/saved" className="hover:text-[#c9a96e]">
               {t.nav.saved}
             </Link>
-            <Link href={href('/movies')} className="hover:text-[#c9a96e]">
+            <Link href="/movies" className="hover:text-[#c9a96e]">
               {t.nav.movies}
             </Link>
             <a href="#magazines" className="hover:text-[#c9a96e]">
               {t.nav.magazine}
             </a>
-            <Link href={href('/genres/cooking')} className="hover:text-[#c9a96e]">
+            <Link href="/genres/cooking" className="hover:text-[#c9a96e]">
               {t.nav.cookbooks}
             </Link>
-            <Link href={href('/sources')} className="hover:text-[#c9a96e]">
+            <Link href="/sources" className="hover:text-[#c9a96e]">
               {t.nav.allSources}
             </Link>
-            <AuthNavLinks locale={locale} />
-            <LanguageSwitcher />
+            <AuthNavLinks />
           </nav>
         </div>
       </header>
@@ -448,7 +444,7 @@ export default function ReadAIHome({ locale = 'en' }: { locale?: Locale }) {
         </div>
       </section>
 
-      <HomeBrowseHub rooms={topRooms} genresLoading={genresLoading} locale={locale} />
+      <HomeBrowseHub rooms={topRooms} genresLoading={genresLoading} />
 
       <section id="genres" className="px-5 py-12 md:px-8 md:py-16">
         <div className="mx-auto max-w-6xl">
@@ -465,7 +461,7 @@ export default function ReadAIHome({ locale = 'en' }: { locale?: Locale }) {
 
           <p className="mt-4">
             <Link
-              href={href('/genres')}
+              href="/genres"
               className="text-xs uppercase tracking-wider text-[#c9a96e] hover:underline"
             >
               {t.home.viewAllRooms}
@@ -476,7 +472,6 @@ export default function ReadAIHome({ locale = 'en' }: { locale?: Locale }) {
             <p className="mt-8 text-sm text-[#e8e4df]/70">{t.home.loadingGenres}</p>
           ) : (
             <GenreDirectoryGrid
-              locale={locale}
               sections={genrePickerSections.map((section) => ({
                 id: section.id,
                 title: section.title,
@@ -493,7 +488,7 @@ export default function ReadAIHome({ locale = 'en' }: { locale?: Locale }) {
         className="border-t border-white/10 bg-white/[0.02] px-5 py-12 md:px-8 md:py-16"
       >
         <div className="mx-auto max-w-6xl">
-          <ConnectedSourcesBlock locale={locale} />
+          <ConnectedSourcesBlock />
         </div>
       </section>
 
@@ -505,7 +500,7 @@ export default function ReadAIHome({ locale = 'en' }: { locale?: Locale }) {
             {t.home.moviesSectionBody.replace('{count}', String(FEATURED_FILM_COUNT))}
           </p>
           <p className="mt-4">
-            <Link href={href('/movies')} className="text-xs uppercase tracking-wider text-[#c9a96e] hover:underline">
+            <Link href="/movies" className="text-xs uppercase tracking-wider text-[#c9a96e] hover:underline">
               {t.home.openMovies}
             </Link>
           </p>
@@ -514,7 +509,7 @@ export default function ReadAIHome({ locale = 'en' }: { locale?: Locale }) {
 
       <section id="magazines" className="border-t border-white/10 bg-white/[0.02] px-5 py-12 md:px-8 md:py-16">
         <div className="mx-auto max-w-6xl">
-          <MagazineSourcesBlock locale={locale} />
+          <MagazineSourcesBlock />
         </div>
       </section>
 
@@ -527,7 +522,7 @@ export default function ReadAIHome({ locale = 'en' }: { locale?: Locale }) {
           </p>
           <p className="mt-4">
             <Link
-              href={href('/genres/cooking')}
+              href="/genres/cooking"
               className="text-xs uppercase tracking-wider text-[#c9a96e] hover:underline"
             >
               {t.home.openCooking}

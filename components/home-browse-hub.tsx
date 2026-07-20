@@ -11,7 +11,6 @@ import {
 import { FEATURED_FILMS } from '@/lib/movie-sources'
 
 import { getDictionary } from '@/lib/i18n/dictionaries'
-import { localizedPath, type Locale } from '@/lib/i18n/config'
 
 const FEATURED_FILM_COUNT = FEATURED_FILMS.length
 const SPOTLIGHT_FILM = FEATURED_FILMS[0]
@@ -33,7 +32,6 @@ interface HomeBrowseHubProps {
     tagline: string
   }[]
   genresLoading?: boolean
-  locale?: Locale
 }
 
 function PathCard({
@@ -87,9 +85,8 @@ function PathCard({
   )
 }
 
-export function HomeBrowseHub({ rooms, genresLoading, locale = 'en' }: HomeBrowseHubProps) {
-  const t = getDictionary(locale)
-  const href = (path: string) => localizedPath(locale, path)
+export function HomeBrowseHub({ rooms, genresLoading }: HomeBrowseHubProps) {
+  const t = getDictionary()
   const [savedCount, setSavedCount] = useState(0)
   const [lastRead, setLastRead] = useState<LastReadState | null>(null)
   const heroLeftRef = useRef<HTMLDivElement>(null)
@@ -184,7 +181,7 @@ export function HomeBrowseHub({ rooms, genresLoading, locale = 'en' }: HomeBrows
               </p>
               <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[#eadfce]">
                 {t.home.heroTrial}{' '}
-                <Link href={href('/sign-up')} className="font-medium text-[#d8b67c] hover:underline">
+                <Link href="/sign-up" className="font-medium text-[#d8b67c] hover:underline">
                   {t.nav.startTrial}
                 </Link>
               </p>
@@ -193,7 +190,7 @@ export function HomeBrowseHub({ rooms, genresLoading, locale = 'en' }: HomeBrows
                 {GENRE_ROOMS.map((id) => (
                   <li key={id}>
                     <Link
-                      href={href(`/genres/${id}`)}
+                      href={`/genres/${id}`}
                       className="inline-block border border-white/15 px-3 py-1 text-[11px] uppercase tracking-wider text-[#f0e7db] transition hover:border-[#d8b67c]/60 hover:text-[#d8b67c]"
                     >
                       {id.replace('-', ' ')}
@@ -202,7 +199,7 @@ export function HomeBrowseHub({ rooms, genresLoading, locale = 'en' }: HomeBrows
                 ))}
                 <li>
                   <Link
-                    href={href('/movies')}
+                    href="/movies"
                     className="inline-block border border-white/15 px-3 py-1 text-[11px] uppercase tracking-wider text-[#f0e7db] transition hover:border-[#d8b67c]/60 hover:text-[#d8b67c]"
                   >
                     {t.nav.movies}
@@ -210,7 +207,7 @@ export function HomeBrowseHub({ rooms, genresLoading, locale = 'en' }: HomeBrows
                 </li>
                 <li>
                   <Link
-                    href={href('/genres')}
+                    href="/genres"
                     className="inline-block px-3 py-1 text-[11px] uppercase tracking-wider text-[#d8b67c] hover:underline"
                   >
                     {t.home.allRooms}
@@ -224,7 +221,7 @@ export function HomeBrowseHub({ rooms, genresLoading, locale = 'en' }: HomeBrows
               className="mt-8 border border-white/10 bg-[#140f0c] p-5 xl:absolute xl:right-0 xl:top-0 xl:mt-0 xl:w-[300px]"
             >
               <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">{t.home.filmRoom}</p>
-              <Link href={href('/movies')} className="mt-4 flex items-start gap-4 transition hover:opacity-90">
+              <Link href="/movies" className="mt-4 flex items-start gap-4 transition hover:opacity-90">
                 <FilmCoverThumb
                   filmTitle={SPOTLIGHT_FILM.title}
                   eager
@@ -264,14 +261,14 @@ export function HomeBrowseHub({ rooms, genresLoading, locale = 'en' }: HomeBrows
                 : t.home.buildShelf
             }
             body={savedCount > 0 ? t.home.savedCountBody : t.home.saveWhileBrowsing}
-            href={href('/saved')}
+            href="/saved"
             cta={t.home.openSavedShelf}
           />
           <PathCard
             eyebrow={t.home.browseByRoom}
             title={t.home.walkRooms}
             body={t.home.walkRoomsBody}
-            href={href('/genres')}
+            href="/genres"
             cta={t.home.enterRooms}
           />
         </div>
@@ -281,7 +278,7 @@ export function HomeBrowseHub({ rooms, genresLoading, locale = 'en' }: HomeBrows
             eyebrow={t.home.filmRoom}
             title={`${FEATURED_FILM_COUNT} ${t.home.movieBooks}`}
             body={t.home.movieBooksBody}
-            href={href('/movies')}
+            href="/movies"
             cta={t.home.enterMovies}
             thumbTitle={SPOTLIGHT_FILM.title}
             movieBookLabel={t.home.movieBookLabel}
@@ -294,7 +291,7 @@ export function HomeBrowseHub({ rooms, genresLoading, locale = 'en' }: HomeBrows
               <p className="text-[10px] uppercase tracking-[0.24em] text-[#d8b67c]">{t.home.popularRooms}</p>
               <h2 className="mt-2 font-serif text-2xl text-[#f5eee6]">{t.home.browseByRoom}</h2>
             </div>
-            <Link href={href('/genres')} className="text-xs uppercase tracking-wider text-[#d8b67c] hover:underline">
+            <Link href="/genres" className="text-xs uppercase tracking-wider text-[#d8b67c] hover:underline">
               {t.home.allRoomsLink}
             </Link>
           </div>
@@ -307,7 +304,7 @@ export function HomeBrowseHub({ rooms, genresLoading, locale = 'en' }: HomeBrows
               {rooms.slice(0, 5).map((room) => (
                 <li key={room.id} className="border-t border-white/10 pt-3 first:border-t-0 first:pt-0">
                   <Link
-                    href={href(`/genres/${room.id}`)}
+                    href={`/genres/${room.id}`}
                     className="font-serif text-lg text-[#f5eee6] transition hover:text-[#d8b67c]"
                   >
                     {room.title}
