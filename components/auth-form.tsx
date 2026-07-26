@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { type FormEvent, useState } from 'react'
+import { trackEvent } from '@/lib/analytics'
 
 export function AuthForm({
   mode,
@@ -35,7 +36,10 @@ export function AuthForm({
         return
       }
 
-      window.location.assign(nextPath)
+      const eventName = mode === 'sign-up' ? 'sign_up' : 'login'
+      trackEvent(eventName, { method: 'email' }, () => {
+        window.location.assign(nextPath)
+      })
     } catch {
       setError('Network error. Please try again.')
     } finally {
