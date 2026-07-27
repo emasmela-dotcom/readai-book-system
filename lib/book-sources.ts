@@ -25,6 +25,26 @@ export type BookSourceId =
   | 'europeana'
   | 'british-library'
   | 'smithsonian-libraries'
+  | 'kindle-store'
+  | 'apple-books'
+  | 'kobo'
+  | 'barnes-noble'
+  | 'nook'
+  | 'bookshop-org'
+  | 'amazon'
+  | 'audible'
+  | 'libro-fm'
+  | 'overdrive'
+  | 'cloudlibrary'
+  | 'borrowbox'
+  | 'axis-360'
+  | 'pressreader'
+  | 'scribd'
+  | 'everand'
+  | 'bibliotheca'
+  | 'goodreads'
+  | 'the-storygraph'
+  | 'bookbub'
 
 export interface BookSourceLink {
   id: BookSourceId
@@ -219,6 +239,146 @@ export const CONNECTED_SOURCES: ConnectedSource[] = [
     href: 'https://library.si.edu/',
     access: 'catalog',
   },
+  {
+    id: 'kindle-store',
+    label: 'Kindle Store',
+    tagline: 'Buy and preview ebooks from Amazon Kindle bookstore.',
+    href: 'https://www.amazon.com/kindle-dbs/storefront',
+    access: 'catalog',
+  },
+  {
+    id: 'apple-books',
+    label: 'Apple Books',
+    tagline: 'Preview and purchase ebooks and audiobooks from Apple.',
+    href: 'https://books.apple.com/',
+    access: 'catalog',
+  },
+  {
+    id: 'kobo',
+    label: 'Kobo',
+    tagline: 'Discover and buy ebooks and audiobooks from Rakuten Kobo.',
+    href: 'https://www.kobo.com/',
+    access: 'catalog',
+  },
+  {
+    id: 'barnes-noble',
+    label: 'Barnes & Noble',
+    tagline: 'Shop new releases, bestsellers, and Nook ebooks.',
+    href: 'https://www.barnesandnoble.com/',
+    access: 'catalog',
+  },
+  {
+    id: 'nook',
+    label: 'Nook',
+    tagline: 'Browse the Nook ebook store and reading app catalog.',
+    href: 'https://www.nook.com/',
+    access: 'catalog',
+  },
+  {
+    id: 'bookshop-org',
+    label: 'Bookshop.org',
+    tagline: 'Buy books online while supporting independent bookstores.',
+    href: 'https://bookshop.org/',
+    access: 'catalog',
+  },
+  {
+    id: 'amazon',
+    label: 'Amazon',
+    tagline: 'Search for print and digital editions across Amazon.',
+    href: 'https://www.amazon.com/',
+    access: 'search',
+  },
+  {
+    id: 'audible',
+    label: 'Audible',
+    tagline: 'Preview and purchase audiobooks from Amazon Audible.',
+    href: 'https://www.audible.com/',
+    access: 'catalog',
+  },
+  {
+    id: 'libro-fm',
+    label: 'Libro.fm',
+    tagline: 'Buy audiobooks and support your local independent bookstore.',
+    href: 'https://libro.fm/',
+    access: 'catalog',
+  },
+  {
+    id: 'overdrive',
+    label: 'OverDrive',
+    tagline: 'Borrow ebooks and audiobooks from your public library.',
+    href: 'https://www.overdrive.com/',
+    access: 'borrow',
+  },
+  {
+    id: 'cloudlibrary',
+    label: 'cloudLibrary',
+    tagline: 'Borrow digital books from your library via Bibliotheca.',
+    href: 'https://www.yourcloudlibrary.com/',
+    access: 'borrow',
+  },
+  {
+    id: 'borrowbox',
+    label: 'BorrowBox',
+    tagline: 'Borrow ebooks and audiobooks from your library.',
+    href: 'https://www.borrowbox.com/',
+    access: 'borrow',
+  },
+  {
+    id: 'axis-360',
+    label: 'Axis 360',
+    tagline: 'Library ebook and audiobook lending via Baker & Taylor.',
+    href: 'https://www.baker-taylor.com/',
+    access: 'borrow',
+  },
+  {
+    id: 'pressreader',
+    label: 'PressReader',
+    tagline: 'Read newspapers and magazines from libraries and cafes.',
+    href: 'https://www.pressreader.com/',
+    access: 'borrow',
+  },
+  {
+    id: 'scribd',
+    label: 'Scribd',
+    tagline: 'Subscription access to ebooks, audiobooks, and documents.',
+    href: 'https://www.scribd.com/',
+    access: 'catalog',
+  },
+  {
+    id: 'everand',
+    label: 'Everand',
+    tagline: 'Subscription reading for bestsellers, audiobooks, and more.',
+    href: 'https://www.everand.com/',
+    access: 'catalog',
+  },
+  {
+    id: 'bibliotheca',
+    label: 'Bibliotheca',
+    tagline: 'Library technology and digital lending solutions.',
+    href: 'https://www.bibliotheca.com/',
+    access: 'borrow',
+  },
+  {
+    id: 'goodreads',
+    label: 'Goodreads',
+    tagline: 'Discover books, read reviews, and track your reading.',
+    href: 'https://www.goodreads.com/',
+    access: 'search',
+  },
+  {
+    id: 'the-storygraph',
+    label: 'The StoryGraph',
+    tagline: 'Track reading, get recommendations, and discover new books.',
+    href: 'https://www.thestorygraph.com/',
+    access: 'search',
+  },
+  {
+    id: 'bookbub',
+    label: 'BookBub',
+    tagline: 'Find ebook deals, recommendations, and new releases.',
+    href: 'https://www.bookbub.com/',
+    access: 'search',
+  },
 ]
 
 export interface SourceBookInput {
@@ -295,6 +455,46 @@ export function resolveBookSourceHref(id: BookSourceId, book: SourceBookInput): 
       return `https://explore.bl.uk/primo_library/libweb/primo_search?query=any,contains,${q}`
     case 'smithsonian-libraries':
       return `https://library.si.edu/search/node/${q}`
+    case 'kindle-store':
+      return `https://www.amazon.com/s?k=${q}&i=digital-text`
+    case 'apple-books':
+      return `https://books.apple.com/us/search?term=${q}`
+    case 'kobo':
+      return `https://www.kobo.com/search?query=${q}`
+    case 'barnes-noble':
+      return `https://www.barnesandnoble.com/s/${q}`
+    case 'nook':
+      return `https://www.barnesandnoble.com/s/${q}`
+    case 'bookshop-org':
+      return `https://bookshop.org/search?keywords=${q}`
+    case 'amazon':
+      return `https://www.amazon.com/s?k=${q}`
+    case 'audible':
+      return `https://www.audible.com/search?keywords=${q}`
+    case 'libro-fm':
+      return `https://libro.fm/search?query=${q}`
+    case 'overdrive':
+      return `https://www.overdrive.com/search?q=${q}`
+    case 'cloudlibrary':
+      return catalogHref('cloudlibrary')!
+    case 'borrowbox':
+      return catalogHref('borrowbox')!
+    case 'axis-360':
+      return catalogHref('axis-360')!
+    case 'pressreader':
+      return `https://www.pressreader.com/search?query=${q}`
+    case 'scribd':
+      return `https://www.scribd.com/search?query=${q}`
+    case 'everand':
+      return `https://www.everand.com/search?query=${q}`
+    case 'bibliotheca':
+      return catalogHref('bibliotheca')!
+    case 'goodreads':
+      return `https://www.goodreads.com/search?q=${q}`
+    case 'the-storygraph':
+      return `https://app.thestorygraph.com/browse?search_term=${q}`
+    case 'bookbub':
+      return `https://www.bookbub.com/search?search=${q}`
     default:
       return catalogHref(id) ?? '#'
   }
