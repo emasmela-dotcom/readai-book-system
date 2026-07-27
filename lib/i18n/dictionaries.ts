@@ -27,7 +27,7 @@ const en = {
     heroEyebrow: 'Private reading club',
     heroTitle: 'Every book. Every reader. Every story.',
     heroBody: 'Join a community of readers who live for their next great read.',
-    heroTrial: '14-day free trial · then $9/month or $79/year.',
+    heroTrial: '14-day free trial starts after you sign up. No card required.',
     allRooms: 'All rooms →',
     filmRoom: 'Film room',
     movieBooks: 'movie books',
